@@ -1,46 +1,31 @@
 # asonas/skills
 
-Self-authored skills for Claude Code / cursor-agent. Each skill is one directory containing a `SKILL.md` (plus optional supporting files such as `DESIGN.md`).
+Self-authored agent skills distributed through APM. Each skill lives in its own directory with `SKILL.md` and any required references or scripts.
 
-## Used together with asonas/dotfiles
+## Source and distribution
 
-This repository is not used on its own. It is meant to be used together with [asonas/dotfiles](https://github.com/asonas/dotfiles). The `apm.yml` in dotfiles references each skill here as a dependency, and they are deployed to the real environment via APM (Agent Package Manager).
-
-In the dotfiles `apm.yml` they are registered like this:
+Edit skill sources here. Register each enabled skill in [asonas/dotfiles](https://github.com/asonas/dotfiles)'s `apm.yml`, for example:
 
 ```yaml
 dependencies:
   apm:
-    - asonas/skills/commit
-    - asonas/skills/cross-review
-    - asonas/skills/entire
-    - asonas/skills/git-worktree-workflow
-    - asonas/skills/legacy-code-improvement
-    - asonas/skills/pr-review
-    - asonas/skills/usb-debug
+    - git: asonas/skills
+      path: obsidian-vault
+      targets: [claude, codex]
 ```
 
-## How it is deployed
+Dotfiles owns the enabled set and runtime targets. Publish reviewed source changes before updating dependencies and deploying through APM. Do not edit deployed copies or create parallel local skill links. Run the dotfiles installer only when installation is explicitly authorized and from its canonical main worktree; do not run it for routine source edits or tests.
 
-Run `./install.sh` from the root of asonas/dotfiles. APM places everything in the right location.
+## Private runtime data
 
-```bash
-cd /path/to/asonas/dotfiles
-./install.sh
+Skills may contain personal workflow conventions, but must not contain conversation exports, internal project records, search results, or real benchmark questions. Keep those in the local Vault. Wiki inspection records use `.agent-state/wiki-update/`; search benchmark data uses `.agent-state/vault-rag/`.
+
+## Tests
+
+```sh
+mise exec -- ruby test/apple_interface_guidelines_scripts_test.rb
+bash test/apple_interface_guidelines_skill_test.sh
+mise exec -- ruby test/vault_state_test.rb
 ```
 
-Internally `install.sh` does the following:
-
-- Symlinks `~/.apm/apm.yml` to the dotfiles `apm.yml`
-- Runs `apm compile` to compile APM primitives into `CLAUDE.md` / `AGENTS.md`
-- Runs `apm install -g --target claude,cursor`, deploying the dependencies — including the skills in this repository — to `~/.claude` and `~/.cursor`
-
-So do not `git clone` this repository and use it directly. Deployment is always driven from the dotfiles `install.sh`.
-
-## Adding a new skill
-
-1. Create `<skill-name>/SKILL.md` in this repository
-2. Add `asonas/skills/<skill-name>` to `dependencies.apm` in the asonas/dotfiles `apm.yml`
-3. Re-run `./install.sh` in asonas/dotfiles to deploy it
-
-Adding a directory to this repository alone does not make the skill available to Claude Code / cursor-agent. You must also register the dependency in dotfiles and re-run the install before it takes effect. Creating symlinks by hand is not necessary — running the dotfiles `install.sh` is the correct path.
+Tests use synthetic fixtures and temporary directories, not the personal Vault. Validate skill metadata and inspect references before publishing. Generalized Vault-path resolution and broader workflow redesign are separate work from repository migration.
