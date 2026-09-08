@@ -30,6 +30,8 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
 
 ### Step 2: Get Prior-Day Summary
 
+要約を始める前に `/save-conversation pending` の手順でCodexの未取り込み会話を回収する。初回は同スキルの対象確認・継続回収の承認を先に行い、未承認なら保存を保留する。回収に失敗してもtoday全体は止めず、取得できた範囲を伝える。保存済みの `conversations/` から前日の発言時刻に該当するやり取りを読み、作業だけでなく相談・問い・未解決の話題も引き継ぎ候補にする。日付はファイル名ではなく各発言のJST時刻で判断する。会話原文の保存と、日報に採用する要約は分ける。
+
 前日（または直近営業日）の引き継ぎ材料を subagent で組み立てる。subagent は `model: "sonnet"`、`subagent_type: "general-purpose"` で起動し、調査結果を構造化された短いテキスト（200〜400字目安）で返す。
 
 #### 2a. prior-day-summary subagent
@@ -48,6 +50,7 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
    a. Read: $VAULT_DIR/daily/YYYY-MM-DD.md
    b. cman:cm-search を keyword="YYYY-MM-DD"、exclude_subagents=true で実行し、その日のClaude Codeセッション履歴を取得
       （exclude_subagents=true は必須。agent-* セッションを除外すると全文検索の対象が減り所要時間がほぼ半減する。かつ「昨日やったこと」の材料として subagent の内部ログは不要なので結果品質も上がる）
+   c. メインスレッドで確認した conversations/ の対象日発言も材料に含める。cmanが使えない場合もCodex会話とdailyから続ける。assistantの提案をユーザーの意見や合意に読み替えない。成果の断定には元JSONLのツール結果など直接の証拠を確認する。
 3. 抽出する情報:
    - Uncompleted tasks: `- [ ]` 行
    - 「明日」「tomorrow」「次回」を含む引き継ぎ項目

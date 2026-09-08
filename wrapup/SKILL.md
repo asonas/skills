@@ -52,6 +52,10 @@ Parse the argument to determine which daily note to update:
 
 セッションの現在日付（Asia/Tokyo）を使って対象日を確定する。
 
+### Step 1b: 未取り込みの会話を回収する
+
+`/save-conversation pending` の手順を実行する。初回は同スキルの対象確認・継続回収の承認を先に行い、未承認なら保存を保留する。これは原文の機械的な保存であり、Step 5の日報候補の承認とは別扱い。回収の失敗・保留は報告し、読める原本からwrapupを続ける。対象日以外の新しい会話も保存され得るが、日報に採用するのは対象日のやり取りだけとする。
+
 ### Step 2: Verify Daily Note Exists
 
 Check if the target daily note exists:
@@ -67,19 +71,20 @@ If it doesn't exist, ask the user whether to (a) create today's note and append,
 
 #### Codex履歴
 
-次の2種類のファイルを、Readまたは読み取り専用のシェルコマンドで確認する。
+保存済みの `conversations/` を入口にし、成果の確認には元のJSONLを読む。会話Markdownはツール結果を省略しているため、それだけで実装・テストの成功を断定しない。次のファイルをReadまたは読み取り専用のシェルコマンドで確認する。
 
 ```
 /Users/asonas/.codex/history.jsonl
 /Users/asonas/.codex/sessions/
+/Users/asonas/.codex/archived_sessions/
 ```
 
-1. `history.jsonl` の各レコード (`session_id`, `ts`, `text`) から、`ts` を `Asia/Tokyo` に変換して対象日のユーザー入力とセッションIDを抽出する。ファイルのディレクトリ名だけで日付を判定しない。
-2. 抽出したセッションIDに対応する `sessions/YYYY/MM/DD/*.jsonl` を探し、`session_meta` の `payload.cwd`、`payload.session_id`、`payload.parent_thread_id`、`payload.source`、`payload.thread_source` を確認する。日付を跨いだセッションは、履歴レコードの時刻を優先して対象日に含める。
+1. `conversations/` の各発言のJST時刻から、対象日のユーザー・assistantのやり取りとセッションIDを抽出する。未保存の範囲は `sessions/` と `archived_sessions/` のJSONLで補う。`history.jsonl` は補助索引とし、そこに載っていないことを理由に会話を除外しない。ファイルのディレクトリ名だけで日付を判定しない。
+2. 対応するJSONLの `session_meta` で `payload.id`（なければ `payload.session_id`）、`payload.cwd`、`payload.parent_thread_id`、`payload.source`、`payload.thread_source` を確認する。日付を跨いだセッションは各発言の時刻を優先して対象日に含める。
 3. 各セッションのユーザー向けメッセージ、ツール呼び出しの結果、アシスタントの最終応答を確認する。暗号化されたreasoningや内部メタデータだけを根拠にしない。
 4. 次のセッションは集計から除外する:
    - `payload.source.subagent` があるセッション、または `payload.thread_source == "subagent"` のセッション
-   - 最初のユーザー入力が `/wrapup`、`/today`、`/commit` だけの運用セッション
+   - `/wrapup`、`/today`、`/commit` だけで終わった運用セッション（開始コマンドだけで後続の会話まで除外しない）
    - セットアップや初期化だけで、作業対象がないセッション
 5. 同じ親スレッド・同じ作業ディレクトリ・同じ作業内容の重複rolloutは1件に統合する。内容が食い違う場合は、保守的に「未確認」とする。サブエージェントの成果を親セッションと別成果として二重計上しない。
 
@@ -107,12 +112,14 @@ cmanのツールが利用可能なら、Codex履歴に含まれないClaude Code
 
 対象日の履歴が見つからない場合は「該当なし」とする。履歴ファイルを読めない場合は、その事実を明記し、読めたソースだけで作業する。履歴確認のためにビルド、テスト、デバイスアクセス、外部状態の変更を新たに実行しない。
 
+実装成果のない会話も捨てない。話したこと、ユーザーが述べた考え、AIが提示した案、未解決の問いを区別して日報候補にする。単なる返答や沈黙を合意と見なさず、セッション間で考えが変わった場合は時系列で示す。自動的な心理分析や評価は加えない。
+
 ### Step 4: Gather Work Summary (main thread)
 
 メインスレッドで以下のソースから「やったこと」のドラフトを組み立てる。
 
 1. **From Step 3 (Codex session history) — 当日全体の主な網羅ソース**
-   - `history.jsonl` と対応するセッションJSONLから、対象日の作業候補をプロジェクト別に整理する
+   - `conversations/` と対応するセッションJSONLから、対象日の作業・会話候補を話題別に整理する（`history.jsonl` は補助）
    - セッションのタイトルやユーザー入力ではなく、ツール結果・差分・検証結果で成果を確認する
    - 対象ソースが一部欠けている場合は、網羅できたと断言せず、取得範囲を明示する
 
