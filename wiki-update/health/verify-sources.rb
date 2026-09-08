@@ -19,7 +19,8 @@ require 'set'
 Encoding.default_external = Encoding::UTF_8
 Encoding.default_internal = nil
 
-VAULT = ENV.fetch('OBSIDIAN_VAULT', '/Users/asonas/Obsidian/asonas')
+require_relative '../../obsidian-vault/scripts/resolve-vault'
+VAULT = ObsidianVault.resolve
 WIKI  = File.join(VAULT, 'wiki')
 OPERATIONAL = /\A(index|log|log-.*|deferred)\.md\z/
 

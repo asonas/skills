@@ -4,9 +4,12 @@ description: Apple Books.app のハイライト・メモを epub 原本のメタ
 disable-model-invocation: true
 ---
 
+Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
+
+
 # /books-highlights - Apple Books Highlights -> Obsidian
 
-macOS の Books.app に付けたハイライトとメモを、ローカル SQLite から読み出し、epub 原本（OPF / 目次）のメタデータと章構成に紐づけて `~/Documents/asonas/books/` に Markdown として書き出すスキルです。raindrop-sync と同じ「依存ゼロ Ruby スクリプト」構成で、`bookmarks/` と並ぶ Raw Sources 層を構成します。
+macOS の Books.app に付けたハイライトとメモを、ローカル SQLite から読み出し、epub 原本（OPF / 目次）のメタデータと章構成に紐づけて `$VAULT_DIR/books/` に Markdown として書き出すスキルです。raindrop-sync と同じ「依存ゼロ Ruby スクリプト」構成で、`bookmarks/` と並ぶ Raw Sources 層を構成します。
 
 ## 前提
 
@@ -28,7 +31,7 @@ macOS の Books.app に付けたハイライトとメモを、ローカル SQLit
 ```
 --book TITLE     # タイトル部分一致で対象書籍を絞る
 --all            # 全書籍を対象にする
---out-dir DIR    # 出力先（既定 ~/Documents/asonas/books）
+--out-dir DIR    # 出力先（既定 $VAULT_DIR/books）
 --dry-run        # 書き込まず内容を表示
 ```
 

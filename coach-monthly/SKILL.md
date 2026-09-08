@@ -4,6 +4,9 @@ description: 月次セルフコーチング。過去30日のdaily note・coachin
 disable-model-invocation: true
 ---
 
+Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
+
+
 # /coach-monthly - 月次セルフコーチング（テーマ抽出と深掘り）
 
 過去30日を横断して繰り返し現れたテーマを抽出し、本人がどう受け止めるかを掘る。所要60分を想定。月次は **深い問い** だけを扱う層なので、表層の進捗振り返りはここではやらない（それは weekly でやる）。
@@ -45,10 +48,10 @@ disable-model-invocation: true
 読み取りは Read ツールで絶対パスを直読する（`obsidian read` は Obsidian GUI が閉じているとハングするため使わない）:
 
 ```
-Read: /Users/asonas/Obsidian/asonas/daily/YYYY-MM-DD.md
-Read: /Users/asonas/Obsidian/asonas/coaching/log.md
-Read: /Users/asonas/Obsidian/asonas/coaching/weekly/YYYY-Wnn.md
-Read: /Users/asonas/Obsidian/asonas/coaching/monthly/YYYY-MM.md
+Read: $VAULT_DIR/daily/YYYY-MM-DD.md
+Read: $VAULT_DIR/coaching/log.md
+Read: $VAULT_DIR/coaching/weekly/YYYY-Wnn.md
+Read: $VAULT_DIR/coaching/monthly/YYYY-MM.md
 ```
 
 ファイル数が多いので、内容を頭に入れる際は **テーマ抽出に必要な情報** に絞ってメモする（全文を保持しない）。

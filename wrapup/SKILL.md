@@ -5,6 +5,9 @@ argument-hint: "[date]"
 disable-model-invocation: true
 ---
 
+Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
+
+
 # /wrapup - Daily Wrap-up
 
 Summarize the day's work and append to the daily note in Obsidian.
@@ -53,7 +56,7 @@ Parse the argument to determine which daily note to update:
 
 Check if the target daily note exists:
 ```
-Read: /Users/asonas/Obsidian/asonas/daily/YYYY-MM-DD.md
+Read: $VAULT_DIR/daily/YYYY-MM-DD.md
 ```
 
 If it doesn't exist, ask the user whether to (a) create today's note and append, (b) append to yesterday's note instead, or (c) abort.
@@ -165,7 +168,7 @@ After confirmation, append under the `## ログ` heading. 公式CLIはheading指
 
 ```
 # Read tool:
-Read: /Users/asonas/Obsidian/asonas/daily/YYYY-MM-DD.md
+Read: $VAULT_DIR/daily/YYYY-MM-DD.md
 
 # Edit tool: "## ログ" セクション末尾に追記
 # old_string: "## ログ\n" (空セクションの場合) または既存ログ末尾の一意なスニペット

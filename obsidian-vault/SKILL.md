@@ -15,13 +15,29 @@ Vaultを扱う各スキルが共有する、保存・原文保護・整理のル
 - リポジトリ名に紐付くMarkdownのドキュメントはObsidianから検索して読み取る
 - Obsidianにドキュメントを書くよう指示がない場合はリポジトリで指示されているディレクトリに保存する
 
-## ツール選択方針（2026-04-15 移行 / 2026-07-08 更新）
-- **読み取り（read）は Read ツールで絶対パスを直読することを第一選択とする**。`/Users/asonas/Obsidian/asonas/<path>` を Read で開く。`obsidian read` / `obsidian daily:read` は **使わない**
+## 保存先の解決
+
+Vaultの読み書きに先立ち、同梱の共通処理で登録先を取得する。個人ノートは `asonas`、公開ブログ用は `ason.as` を指定する。
+
+```sh
+VAULT_DIR=$(mise exec -- ruby ~/.agents/skills/obsidian-vault/scripts/resolve-vault.rb asonas) || exit 1
+```
+
+- 成功時の標準出力は検証済みの絶対パス1行。以下や他のスキルの `$VAULT_DIR` は、その値に展開してRead/Editへ渡す。シェルの例は変数を設定した同じ実行内で使う。
+- macOSの `~/Library/Application Support/obsidian/obsidian.json` を読み、フォルダ名が一致する登録が1件で、実パスと `.obsidian` が存在することを確認する。GUIやCLIは起動しない。
+- 登録なし・同名の重複・登録先の欠落・設定の破損では停止する。以前のパス、アクティブなVault、存在するだけの同名フォルダへ切り替えない。登録情報の形式が変わった場合も推測せず確認する。
+- `OBSIDIAN_CONFIG` は登録情報ファイルの明示指定（別設定・テスト用）。`OBSIDIAN_VAULT` は登録先との一致を検証する指定であり、登録を迂回しない。
+- スクリプトを使うスキルは、同じ配布先に `obsidian-vault` を導入する。書籍の `--out-dir` など個別出力先の指定はユーザーの明示依頼がある場合だけ使う。
+- qmdで検索・更新する前に、collectionのルートと解決済みパスを照合する。不一致なら停止して設定変更を確認する。Vaultの移動だけではqmd設定は追従しない。
+
+## ツール選択方針
+
+- **読み取り（read）は Read ツールで絶対パスを直読することを第一選択とする**。`$VAULT_DIR/<path>` を Read で開く。`obsidian read` / `obsidian daily:read` は **使わない**
   - 理由: `obsidian` CLI は Obsidian GUI 本体（Electron バイナリ）そのもので、GUI が起動していない瞬間に呼ぶと本体をヘッドレスで冷間起動しようとしてハングする（2026-07-08 に再現確認: exit 124、stderr に `IMKCFRunLoopWakeUpReliable` エラー）。GUI 起動中なら 0.25 秒で返るが、閉じている保証がないため read には使わない
 - **書き込み（create / append）も Write / Edit ツールで絶対パスを直接編集することを推奨する**。`obsidian create` / `obsidian append` も同じ理由でハングし得る。Obsidian はファイルシステムの変更を自動検知するため、直接書けば GUI にも反映される
 - `obsidian search` / `obsidian files` など Read/Write ツールで代替できない操作に限り `obsidian` CLI を使う。その場合も GUI が起動している前提でのみ確実に動く点に注意する
 - 旧 `mcp-obsidian` (REST API依存) は廃止済み
-- Vault は2つある: `asonas`（個人ノート / daily / 仕事メモ。path: `/Users/asonas/Obsidian/asonas/`）と `ason.as`（公開ブログ用。path: `/Users/asonas/ghq/github.com/asonas/ason.as/`）
+- Vaultの役割は `asonas`（個人ノート / daily / 仕事メモ）と `ason.as`（公開ブログ用）。実際の登録状況とパスは保存先の解決結果を使う。
 - **`obsidian` コマンドを使う場合は `vault=<name>` を必ず明示すること**。省略するとアクティブな vault が使われ、daily note などが意図せず `ason.as` 側に作られる事故が起きる
 - daily note / 個人ノート / 仕事関連は `vault=asonas`、ブログ記事は `vault=ason.as` を指定する
 - stderr の "installer out of date" 警告は `2>/dev/null` で抑制してよい（stdoutは正常）

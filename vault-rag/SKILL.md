@@ -4,6 +4,9 @@ description: Obsidian asonas vault（wiki / daily / notes / projects / bookmarks
 argument-hint: "<質問>"
 ---
 
+Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
+
+
 # /vault-rag - Obsidian Vault RAG検索
 
 qmd（collection `asonas`、vault 全体の `**/*.md` をインデックス済み）を retriever として、Obsidian vault から出典つきで回答する。vault は「wiki = 出典つき要約の派生レイヤ、daily / notes / activities = 一次ソース」という2層構造を持つため、検索も **wiki-first の2段階** で行う。
@@ -11,8 +14,8 @@ qmd（collection `asonas`、vault 全体の `**/*.md` をインデックス済�
 ## 前提
 
 - qmd 2.5+ がインストール済み。インデックスは `/today`（Step 9c）と `/wrapup`（Step 8b）で毎日差分更新される
-- collection は `asonas`（`qmd://asonas/` = `/Users/asonas/Obsidian/asonas/`）
-- vault の実ファイルは `qmd://asonas/<path>` を `/Users/asonas/Obsidian/asonas/<path>` に読み替えて Read ツールで読める
+- collection は `asonas`。ルートの照合は `/obsidian-vault` の共通ルールに従う。
+- vault の実ファイルは `qmd://asonas/<path>` を `$VAULT_DIR/<path>` に読み替えて Read ツールで読める
 
 ## 検索ワークフロー
 

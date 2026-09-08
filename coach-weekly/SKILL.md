@@ -4,6 +4,9 @@ description: 週次セルフコーチング。過去7日のdaily noteとcoaching
 disable-model-invocation: true
 ---
 
+Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
+
+
 # /coach-weekly - 週次セルフコーチング（GROW）
 
 過去7日を素材に、Sir John Whitmore の GROW モデルで対話する。所要 20〜30分を想定。
@@ -42,9 +45,9 @@ disable-model-invocation: true
 読み取りは Read ツールで絶対パスを直読する（`obsidian read` は Obsidian GUI が閉じているとハングするため使わない）:
 
 ```
-Read: /Users/asonas/Obsidian/asonas/daily/YYYY-MM-DD.md
-Read: /Users/asonas/Obsidian/asonas/coaching/log.md
-Read: /Users/asonas/Obsidian/asonas/coaching/weekly/YYYY-W<前週>.md
+Read: $VAULT_DIR/daily/YYYY-MM-DD.md
+Read: $VAULT_DIR/coaching/log.md
+Read: $VAULT_DIR/coaching/weekly/YYYY-W<前週>.md
 ```
 
 存在しないファイルはスキップしてよい。

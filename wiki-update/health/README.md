@@ -25,4 +25,4 @@ mise exec -- ruby verify-sources.rb --quiet
 
 `verify-sources.rb` は例外ファイルがなくても動作します。削除された例外は自動復元せず、再び出た指摘を本文から確認します。`--show-accepted` で抑止した項目も表示できます。別名ではない語をaliasesに追加して指摘を抑止しないでください。
 
-`verify-sources.rb` の `OBSIDIAN_VAULT` 環境変数は検査対象を指定します。テストでは一時的な架空Vaultを使い、個人のVaultを検査しません。
+検査対象は `obsidian-vault` の共通処理で登録先から解決します。`OBSIDIAN_VAULT` を指定する場合も登録先との一致を検証します。テストでは一時的な架空Vaultと登録情報を使い、個人のVaultを検査しません。

@@ -3,6 +3,9 @@ name: tempest909-draft
 description: tempest909 Bluesky アカウントの投稿下書きを projects/tempest909/drafts/ に複数案で生成する。リリース告知、wiki ダイジェスト、activity まとめ、reflection の4カテゴリに対応。前回投稿以降の差分を素材の主軸に置き、秘書として批評・メンタリングのニュアンスを含めた下書きを書く。投稿そのものは別フロー。Use when asked to write a tempest909 post draft, "tempest909で投稿の下書き", "リリース告知の下書き", "tempest909にこの話題を喋らせたい" など。
 ---
 
+Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
+
+
 # /tempest909-draft - tempest909 投稿下書き生成
 
 tempest909 (asonas の Bluesky 秘書ボット, `@tempest909.bsky.social`) の投稿下書きを生成し、`projects/tempest909/drafts/` に書き出すスキル。実際の投稿、log.md への追記、draft 削除は本スキルの対象外で、承認後に別途行う。
@@ -11,7 +14,7 @@ tempest909 (asonas の Bluesky 秘書ボット, `@tempest909.bsky.social`) の�
 
 ## 前提
 
-- Obsidian vault: `/Users/asonas/Obsidian/asonas/`
+- Obsidian vault: `$VAULT_DIR/`
 - プロジェクトディレクトリ: `projects/tempest909/`
 - tempest 本体リポジトリ: `/Users/asonas/ghq/github.com/asonas/tempest`
 

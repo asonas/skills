@@ -7,10 +7,14 @@ require 'open3'
 require 'json'
 
 class VaultStateTest < Minitest::Test
-  ROOT = File.expand_path('..', __dir__)
+  ROOT = File.expand_path(ENV.fetch('SKILLS_ROOT', File.expand_path('..', __dir__)))
 
   def setup
-    @vault = Dir.mktmpdir('synthetic-vault-')
+    @root = Dir.mktmpdir('synthetic-vault-')
+    @vault = File.join(@root, 'asonas')
+    FileUtils.mkdir_p(File.join(@vault, '.obsidian'))
+    @config = File.join(@root, 'obsidian.json')
+    File.write(@config, JSON.generate('vaults' => { 'test' => { 'path' => @vault } }))
     FileUtils.mkdir_p(File.join(@vault, 'wiki'))
     FileUtils.mkdir_p(File.join(@vault, 'notes'))
     File.write(File.join(@vault, 'wiki/Example.md'), "---\nsources:\n  - \"[[notes/source]]\"\ntype: concept\n---\nExample\n")
@@ -18,11 +22,11 @@ class VaultStateTest < Minitest::Test
   end
 
   def teardown
-    FileUtils.remove_entry(@vault)
+    FileUtils.remove_entry(@root)
   end
 
   def run_script(path, *args)
-    Open3.capture3({ 'OBSIDIAN_VAULT' => @vault }, RbConfig.ruby, File.join(ROOT, path), *args)
+    Open3.capture3({ 'OBSIDIAN_CONFIG' => @config, 'OBSIDIAN_VAULT' => @vault }, RbConfig.ruby, File.join(ROOT, path), *args)
   end
 
   def test_source_review_exceptions_are_read_from_vault_not_package

@@ -23,7 +23,7 @@ books-highlights.rb --book "シンプリシティ"   # title 部分一致でフ�
 books-highlights.rb --book "シンプリシティ" --dry-run
 ```
 
-`--all`（全書籍）は将来拡張の口だけ用意。`--out-dir`（既定 `~/Documents/asonas/books`）。
+`--all`（全書籍）は将来拡張の口だけ用意。`--out-dir`（既定 `$VAULT_DIR/books`）。
 
 ## データフロー
 

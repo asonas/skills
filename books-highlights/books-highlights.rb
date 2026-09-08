@@ -170,8 +170,6 @@ module BooksHighlights
   module_function
 
   IBOOKS_ROOT = File.expand_path("~/Library/Containers/com.apple.iBooksX/Data/Documents")
-  DEFAULT_OUT_DIR = File.expand_path("~/Documents/asonas/books")
-  WIKI_DIR = File.expand_path("~/Documents/asonas/wiki")
 
   def locate_db(subdir, glob)
     Dir.glob(File.join(IBOOKS_ROOT, subdir, glob)).first
@@ -254,7 +252,7 @@ module BooksHighlights
     require "fileutils"
     require "time"
 
-    opts = { out_dir: DEFAULT_OUT_DIR, dry_run: false, book: nil, all: false }
+    opts = { out_dir: nil, dry_run: false, book: nil, all: false }
     OptionParser.new do |o|
       o.banner = "Usage: books-highlights.rb --book TITLE [--dry-run] [--out-dir DIR]"
       o.on("--book TITLE", "対象書籍のタイトル部分一致") { |v| opts[:book] = v }
@@ -267,6 +265,11 @@ module BooksHighlights
       warn "Error: --book TITLE か --all を指定してください"
       return 1
     end
+
+    require_relative '../obsidian-vault/scripts/resolve-vault'
+    vault = ObsidianVault.resolve
+    opts[:out_dir] ||= File.join(vault, 'books')
+    opts[:wiki_dir] = File.join(vault, 'wiki')
 
     bk = locate_db("BKLibrary", "BKLibrary-*.sqlite")
     ae = locate_db("AEAnnotation", "AEAnnotation_*.sqlite")
@@ -332,7 +335,7 @@ module BooksHighlights
     grouped = group_and_sort(highlights, chapter_map, order)
 
     title = book["title"]
-    related = File.exist?(File.join(WIKI_DIR, "#{title}.md")) ? title : nil
+    related = File.exist?(File.join(opts.fetch(:wiki_dir), "#{title}.md")) ? title : nil
     meta = {
       title: title,
       author: (book["author"] && book["author"] != "UnknownAuthor" ? book["author"] : epub_meta[:author]),

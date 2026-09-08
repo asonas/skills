@@ -4,6 +4,9 @@ description: 日次セルフコーチングの問いを1つだけ投げ、回答
 argument-hint: "morning|evening"
 ---
 
+Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
+
+
 # /coach-daily-question - 日次セルフコーチング
 
 エグゼクティブ・コーチングの考え方を日課に組み込むため、朝晩に1つだけ問いを投げ、本人の短い回答を `coaching/log.md` に append する。単独起動専用で、`/today` や `/wrapup` からは自動で呼ばれない。
@@ -37,7 +40,7 @@ argument-hint: "morning|evening"
 `coaching/log.md` の末尾を読む。直近10エントリ程度で十分。読み取りは Read ツールで絶対パスを直読する（`obsidian read` は GUI が閉じているとハングするため使わない）:
 
 ```
-Read: /Users/asonas/Obsidian/asonas/coaching/log.md
+Read: $VAULT_DIR/coaching/log.md
 ```
 
 ファイルが存在しない場合はスキップして構わない（初回起動時）。
@@ -114,19 +117,19 @@ Read: /Users/asonas/Obsidian/asonas/coaching/log.md
 
 ```
 # 存在確認: Read ツールで直読（無ければ新規作成に進む）
-Read: /Users/asonas/Obsidian/asonas/coaching/log.md
+Read: $VAULT_DIR/coaching/log.md
 
 # 存在しなければ Write ツールで新規作成
-Write: /Users/asonas/Obsidian/asonas/coaching/log.md  ← <初回エントリ>
+Write: $VAULT_DIR/coaching/log.md  ← <初回エントリ>
 
 # 存在すれば末尾に追記。Edit ツールで末尾へ append するか、Bash で
-#   cat >> /Users/asonas/Obsidian/asonas/coaching/log.md
+#   cat >> $VAULT_DIR/coaching/log.md
 # を使う（Obsidian はファイルシステムの変更を自動検知する）
 ```
 
 ### Step 7: daily note への wikilink（初回のみ）
 
-その日の daily note に `[[coaching/log]]` がまだ無ければ、末尾に1行追加する。既にあれば何もしない。`Read` + `Edit` ツールで `/Users/asonas/Obsidian/asonas/daily/YYYY-MM-DD.md` を直接編集する。
+その日の daily note に `[[coaching/log]]` がまだ無ければ、末尾に1行追加する。既にあれば何もしない。`Read` + `Edit` ツールで `$VAULT_DIR/daily/YYYY-MM-DD.md` を直接編集する。
 
 ```
 [[coaching/log]]

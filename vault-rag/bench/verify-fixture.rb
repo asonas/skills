@@ -10,7 +10,8 @@
 
 require 'json'
 
-VAULT = ENV.fetch('OBSIDIAN_VAULT', '/Users/asonas/Obsidian/asonas')
+require_relative '../../obsidian-vault/scripts/resolve-vault'
+VAULT = ObsidianVault.resolve
 path = ARGV[0] || File.join(VAULT, '.agent-state/vault-rag/vault-fixture.json')
 abort "fixture がありません: #{path}" unless File.file?(path)
 fixture = JSON.parse(File.read(path))

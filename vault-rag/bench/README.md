@@ -14,7 +14,7 @@ mise exec -- ruby verify-fixture.rb /absolute/path/to/local-fixture.json
 mise exec -- ruby report.rb /absolute/path/to/before.json /absolute/path/to/after.json
 ```
 
-`OBSIDIAN_VAULT` で検査対象を指定できます。既定の質問ファイルはそのVaultから解決します。ファイルがない場合は測定を保留し、架空の例を実際の検索品質の証拠にしません。
+`OBSIDIAN_VAULT` を指定する場合も `obsidian-vault` の共通処理で登録先との一致を検証します。既定の質問ファイルはそのVaultから解決します。ファイルがない場合は測定を保留し、架空の例を実際の検索品質の証拠にしません。
 
 ## 質問の形式
 

@@ -1,6 +1,6 @@
 # Obsidian Vault Organization
 
-Vault path: `/Users/asonas/Obsidian/asonas/`
+Vault path: `SKILL.md` の共通処理で解決した `$VAULT_DIR/`。
 
 Rules for organizing the Obsidian vault. Covers directory layout, naming conventions, and maintenance procedures. For save destination defaults, link strategy, and writing style, see this skill's SKILL.md.
 
@@ -97,15 +97,15 @@ Before moving or renaming files, run these checks in order:
 
 1. **Backup.** The vault is not git-managed. Create a snapshot:
    ```bash
-   tar czf ~/tmp/vault-backup-$(date +%F).tar.gz -C /Users/asonas/Documents asonas
+   tar czf ~/tmp/vault-backup-$(date +%F).tar.gz -C "$VAULT_DIR" .
    ```
 2. **Filename uniqueness.** Obsidian resolves `[[bare-name]]` by filename. Moving across directories is safe only when the filename is unique vault-wide:
    ```bash
-   find /Users/asonas/Obsidian/asonas -name '*.md' -type f -exec basename {} \; | sort | uniq -d
+   find "$VAULT_DIR" -name '*.md' -type f -exec basename {} \; | sort | uniq -d
    ```
 3. **Path-qualified wikilinks.** If any note links via `[[folder/name]]`, the move breaks it. Grep for path-qualified links referencing the directories you touch:
    ```bash
-   grep -rn --include='*.md' -E '\[\[(old-folder-name)/' /Users/asonas/Obsidian/asonas
+   grep -rn --include='*.md' -E '\[\[(old-folder-name)/' "$VAULT_DIR"
    ```
    Rewrite to the new path after the move.
 4. **Backlinks for deletions.** When deleting a note, confirm no backlinks exist or accept that `[[name]]` will become an "unresolved" link after deletion.
