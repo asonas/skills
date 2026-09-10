@@ -30,6 +30,17 @@ VAULT_DIR=$(mise exec -- ruby ~/.agents/skills/obsidian-vault/scripts/resolve-va
 - スクリプトを使うスキルは、同じ配布先に `obsidian-vault` を導入する。書籍の `--out-dir` など個別出力先の指定はユーザーの明示依頼がある場合だけ使う。
 - qmdで検索・更新する前に、collectionのルートと解決済みパスを照合する。不一致なら停止して設定変更を確認する。Vaultの移動だけではqmd設定は追従しない。
 
+## 添付ファイルの配置
+
+特定のノートから参照するMarkdown以外のファイルをVaultに配置するときは、Custom Attachment Locationの実設定を解決する同梱スクリプトを使う。テンプレート素材や独立した配布ファイルなど、ノートの添付ファイルでないものには適用しない。
+
+```sh
+mise exec -- ruby ~/.agents/skills/obsidian-vault/scripts/place-attachment.rb asonas <vault-relative-note.md> <source-file>
+```
+
+- スクリプトは元ファイルを保持したままコピーし、配置先のVault相対パスを1行で返す。そのパスを使って対象ノートから参照する
+- 対象ノートを必ず明示する。未対応の設定やトークンで停止した場合は、配置先を推測しない
+
 ## ツール選択方針
 
 - **読み取り（read）は Read ツールで絶対パスを直読することを第一選択とする**。`$VAULT_DIR/<path>` を Read で開く。`obsidian read` / `obsidian daily:read` は **使わない**
