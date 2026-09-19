@@ -1,0 +1,5 @@
+interface:
+  display_name: "Jev qmd reranking"
+  short_description: "Opt-in Jev ranking of reviewed qmd evidence"
+policy:
+  allow_implicit_invocation: false
