@@ -144,6 +144,26 @@ cmanのツールが利用可能なら、Codex履歴に含まれないClaude Code
    - 散文 1 段落 + 箇条書き の組み合わせで構わない（既存 daily note のフォーマットに合わせる）
    - セッションが多い日はログが長くなる。主要な作業を優先しつつ、Step 5 でユーザーに提示して取捨を委ねる
 
+### Step 4b: 保存先の点検
+
+対象日に新規作成されたMarkdownの保存先を点検する。先に `/obsidian-vault` の `references/save-destinations.md` を読み、固定保存先とユーザーが明示した保存先は再分類しない。
+
+外部送信前の入力を生成する:
+
+```bash
+mise exec -- ruby <obsidian-vault-skill-dir>/scripts/review-locations.rb preview --vault "$VAULT_DIR" --date YYYY-MM-DD
+```
+
+previewは通信せず、対象ノート、本文抜粋、現在存在する候補、Jevへ送る質問、`approval_sha256`をJSONで示す。アクセスを制限した一時ファイルへ保存する。候補には現在地を維持する`keep_current`と、情報不足の`needs_review`を含む。廃止済み・存在しないディレクトリを候補に加えない。
+
+送信範囲が承認済みなら、確認したpreviewのハッシュを指定して実行する。入力変更時はpreviewからやり直す。
+
+```bash
+envchain typesafe mise exec -- ruby <obsidian-vault-skill-dir>/scripts/review-locations.rb run --input <preview.json> --approve <approval_sha256>
+```
+
+1ノート1リクエストで、自動再試行しない。APIが利用できない場合はpreviewを保存先点検の入力資料として使い、移動を実行せずStep 5へ進む。判定結果は移動候補として扱い、confidenceだけで移動を確定しない。
+
 ### Step 5: Present Summary for Review
 
 Show the user what will be added:
@@ -156,6 +176,18 @@ Show the user what will be added:
 
 この内容でよろしいですか？
 ```
+
+保存先の点検対象がある場合は、ログ候補の後に次の形式で併記する。`keep_current`は件数だけ示し、`needs_review`と移動候補は個別に示す。
+
+```
+## 保存先の点検
+
+- 維持: N件
+- `現在のパス` → `移動候補`（confidence、または未判定）
+- `現在のパス` → 要確認（理由）
+```
+
+この確認はログ候補の承認と同じ応答で受け付ける。ユーザーが移動を承認したファイルだけ、`/obsidian-vault` のMove / Rename Checklistに従って移動・参照修正・検証する。未判定、`needs_review`、修正指示のある項目は保留する。
 
 Wait for user confirmation or edits.
 
