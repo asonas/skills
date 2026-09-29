@@ -135,16 +135,21 @@ class ConversationImportTest < Minitest::Test
     assert_equal original, File.binread(note)
   end
 
-  def test_subagents_are_excluded_and_duplicate_ids_fail_before_writing
+  def test_subagents_are_excluded_and_distinct_sources_with_same_id_are_preserved
     path = source
     other = File.join(@codex, 'sessions', "#{OTHER}.jsonl")
     File.write(other, record('session_meta', { id: OTHER, source: { subagent: 'spawn' } }) + chat_message('user', 'internal task'))
     assert_equal [ID], success('--since', '2026-09-08')['sessions'].map { |s| s['session_id'] }
-    FileUtils.cp(path, File.join(@codex, 'sessions', 'duplicate.jsonl'))
-    stdout, _, status = invoke('--since', '2026-09-08', '--apply')
-    refute status.success?
-    assert_includes stdout, 'Duplicate session'
-    refute File.exist?(note)
+    duplicate = File.join(@codex, 'sessions', 'duplicate.jsonl')
+    File.write(duplicate, record('session_meta', { id: ID, source: 'cli', cwd: '/fixture/project' }) + chat_message('user', '別の問いです。'))
+    originals = [path, duplicate].map { |source_path| File.binread(source_path) }
+    result = success('--since', '2026-09-08', '--apply')
+    assert_equal 2, result['sessions'].size
+    destinations = result['sessions'].map { |session| session['destination'] }
+    assert_equal 2, destinations.uniq.size
+    assert destinations.all? { |destination| File.exist?(destination) }
+    assert_equal originals, [path, duplicate].map { |source_path| File.binread(source_path) }
+    assert_equal 2, success('--pending', '--apply')['sessions'].count { |session| session['status'] == 'unchanged' }
   end
 
   def test_concurrent_import_lock_and_symlink_do_not_overwrite

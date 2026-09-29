@@ -182,12 +182,14 @@ module CodexConversations
       raise "Baseline already #{baseline}; use --session ID for additional historical imports."
     end
     root = File.realpath(options[:root])
-    paths = %w[sessions archived_sessions].flat_map { |name| Dir.glob(File.join(root, name, '**', '*.jsonl')) }.sort
+    paths = %w[sessions archived_sessions].flat_map { |name| Dir.glob(File.join(root, name, '**', '*.jsonl')) }
+    paths.sort_by! { |path| [File.basename(path), path] }
     raise "No Codex JSONL found in #{root}" if paths.empty?
     results = []
     plans = []
     errors = []
     seen = {}
+    destinations = {}
     paths.each do |path|
       begin
         if !options[:ids].empty?
@@ -197,10 +199,12 @@ module CodexConversations
         end
         data = transcript(path)
         next if data[:subagent] || data[:messages].empty?
-        output = File.join(directory, "codex-#{data[:id]}.md")
+        suffix = seen.key?(data[:id]) ? "-#{Digest::SHA256.hexdigest(File.basename(path))[0, 12]}" : ''
+        output = File.join(directory, "codex-#{data[:id]}#{suffix}.md")
         next if options[:since] && !File.exist?(output) && data[:messages].none? { |m| m[:time][0, 10] >= options[:since] }
-        raise "Duplicate session #{data[:id]}: #{seen[data[:id]]} and #{path}" if seen.key?(data[:id])
-        seen[data[:id]] = path
+        raise "Destination collision: #{destinations[output]} and #{path}" if destinations.key?(output)
+        destinations[output] = path
+        seen[data[:id]] ||= path
         verify_owned(output, path)
         content = render(data)
         previous = File.exist?(output) ? File.binread(output) : nil
