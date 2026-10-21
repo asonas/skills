@@ -56,7 +56,8 @@ class JevTest(unittest.TestCase):
                 answers = {}
                 for name, question in test.requests[-1]["questions"].items():
                     options = question["criteria"]
-                    choice = "qualified" if "qualified" in options else "unknown" if "unknown" in options else "missing"
+                    choice = next((name for name in ("qualified", "needs_context", "partial", "unknown", "missing")
+                                   if name in options), next(iter(options)))
                     answers[name] = {"type": "choice", "choice": choice, "confidence": 0.9,
                                      "probabilities": {option: int(option == choice) for option in options}}
                 if test.invalid:
@@ -87,10 +88,48 @@ class JevTest(unittest.TestCase):
         self.assertEqual(code, 0)
         record = json.loads(Path(result["result"]).read_text())
         self.assertEqual(record["answers"]["item_0"]["choice"], "qualified")
+        self.assertEqual(record["answers"]["readout_0"]["choice"], "needs_context")
+        self.assertEqual(record["answers"]["coverage_0"]["choice"], "partial")
+        self.assertEqual(record["sections"][0]["quote_indices"], [0])
+        self.assertEqual(record["judgment_version"], 2)
         self.assertTrue(record["requires_review"])
         self.assertIn("Children did not improve", self.requests[0]["state"]["items"][0]["context"])
         self.assertEqual((self.topic / "extracts.json").read_bytes(), before)
         self.assertNotIn("test-secret", Path(result["result"]).read_text())
+
+    def test_collective_review_keeps_sections_attribution_and_empty_claims(self):
+        self.extracts["claims"][0]["note"] = "EDITORIAL ANSWER MUST NOT FILL THE QUOTE"
+        self.extracts["claims"][0]["quotes"][0]["ja"] = "成人だけ改善した。"
+        self.extracts["claims"].append({"claim": "Why did they improve?", "quotes": []})
+        self.extracts["disagreements"] = [{"topic": "Same population?", "quotes": [
+            {"file": "source.txt", "line": 2, "text": "Children did not improve.", "who": "Study author"}]}]
+        self.write_inputs()
+        _, preview = self.run_jev(extra=["--preview"])
+        state = preview["request"]["state"]
+        self.assertEqual([s["quote_indices"] for s in state["sections"]], [[0], [], [1]])
+        self.assertEqual(state["sections"][2]["kind"], "disagreements")
+        self.assertEqual(state["items"][0]["translation"], "成人だけ改善した。")
+        self.assertEqual(state["items"][1]["speaker"], "Study author")
+        self.assertNotIn("EDITORIAL ANSWER", json.dumps(preview))
+        self.assertEqual(set(preview["request"]["questions"]),
+                         {"item_0", "readout_0", "item_1", "readout_1", "coverage_0", "coverage_1", "coverage_2"})
+
+    def test_all_empty_claims_are_included_in_collective_review(self):
+        self.extracts["claims"][0]["quotes"] = []
+        self.write_inputs()
+        _, result = self.run_jev()
+        record = json.loads(Path(result["result"]).read_text())
+        self.assertEqual(set(record["answers"]), {"coverage_0"})
+        self.assertEqual(self.requests[0]["state"]["items"], [])
+
+    def test_edits_to_quotes_change_review_identity(self):
+        _, before = self.run_jev(extra=["--preview"])
+        self.extracts["claims"][0]["quotes"][0].update(
+            end=2, text="Only adults improved. Children did not improve.")
+        self.write_inputs()
+        _, after = self.run_jev(extra=["--preview"])
+        self.assertNotEqual(before["input_sha256"], after["input_sha256"])
+        self.assertEqual(self.requests, [])
 
     def test_gaps_batch_sufficiency_and_freshness_without_local_paths(self):
         knowledge = {"question": "Who improved?", "as_of": "2026-10-21", "freshness_requirement": "2026 results",
