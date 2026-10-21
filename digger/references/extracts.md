@@ -43,14 +43,15 @@ mise exec -- python3 "$DIGGER_SKILL_DIR/scripts/report.py" "$TOPIC_DIR" --check
 
 照合は指定範囲の前後2行を含み、空白・箇条書きの印を正規化し、`…` の各断片が順に存在するかを見る。原文との一致を確認するもので、内容の正しさ・網羅性・OCRや翻訳の正確さを保証しない。
 
-照合が通った JSON から次のコマンドで `report.md` を作る。生成時にも再照合し、失敗したら既存ページを保持する。
+照合と、有効な場合のJev確認を終えた JSON から、次の2コマンドで `report.md` と `report.html` を標準で作る。各コマンドは生成時にも再照合し、不一致ならその形式の既存ページを保持する。
 
 ```sh
 mise exec -- python3 "$DIGGER_SKILL_DIR/scripts/markdown.py" "$TOPIC_DIR"
+mise exec -- python3 "$DIGGER_SKILL_DIR/scripts/report.py" "$TOPIC_DIR"
 ```
 
 `text` は引用ブロックへそのまま、`ja` は「訳」、`note` は注記として分ける。論点ごとの状態、資料のメタデータへのリンク、本文へのリンク、行番号を付ける。メタデータは本文の拡張子を除いた名前に `-metadata.md` を付けて同じディレクトリへ保存する。原典URLはそこに記録する。生成物末尾の `digger:related:start` / `digger:related:end` 間だけは再生成時も保持する。Wikiリンクはその範囲に置く。
 
 エージェントが加えるのは見出し・状態・短い注記・訳に限り、注記にも結論や評価を加えない。未解決点は `unreached` に残す。取得できた原典自体を生成したレポートで置き換えない。
 
-HTMLを希望された場合は同じコマンドから `--check` を外し、元版と同じ前後の文脈を開ける `report.html` を生成する。
+HTML生成では `--check` を付けない。`--check` だけではHTMLは作られない。`report.html` は元版と同じ前後の文脈を開けるページで、`report.md` と同じ `extracts.json` を使う。両コマンドの成功と両ファイルの生成を確認し、HTMLとMarkdownのリンクを返す。片方が失敗したら既存ファイルの存在だけで成功と扱わず、未生成・未更新の形式を知らせる。ユーザーが形式を明示的に限定した場合だけ片方の生成でよい。
