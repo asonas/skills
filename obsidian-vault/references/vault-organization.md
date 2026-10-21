@@ -13,6 +13,7 @@ Before creating a note or reviewing its location, read [save-destinations.md](sa
 - Directory names are English plural nouns, single word when possible (`notes/`, `projects/`, `companies/`). Use hyphens only when a single word is not meaningful (`job-search-2026/`).
 - Reuse existing company directory names and casing. Performance records use the same company key under `career/performance/`.
 - Filenames may be Japanese or English. Keep them unique across the vault so `[[bare-name]]` wikilinks resolve unambiguously.
+- digger-managed topics retain their generated names (`report.md`, `map.md`, `log.md`). Reference them by full Vault-relative path, such as `[[digger-research/topic/report]]`. Do not move their sources or logs into general topic folders or insert links into original text and quotations.
 - Do not add an H1 heading (`# YYYY-MM-DD`) to daily notes — the filename is the title and adding an H1 duplicates it.
 - Avoid paths longer than two levels under `projects/`, `companies/`, or `notes/` unless there is a clear grouping need.
 

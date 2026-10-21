@@ -14,10 +14,13 @@ Route known document kinds directly, without semantic classification:
 | Raindrop bookmark | `bookmarks/` |
 | Book text, highlights, reading notes | `books/` |
 | Derived, source-linked Wiki page | `wiki/` |
+| digger-managed research, originals and reports | Configured digger root (suggested `digger-research/`), grouped by topic |
 | Coaching session or personal coaching goal | `coaching/` |
 | Note template | `template/` |
 
 Keep handwritten additions separate from files owned by importers or generators. Resolve attachment placement through the existing attachment workflow.
+
+The digger root is selected during setup; do not create it merely because this rule exists. Keep its source files, map, log and report together. Skip this generator-owned tree during semantic location review. Use `<root>/<topic>/report.md` as the Wiki ingestion entry; original sources remain immutable.
 
 ## Content routing
 
