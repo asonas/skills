@@ -83,6 +83,10 @@ Obsidian を選ぶ場合は `destination` だけを次の形にする。Vault �
 
 環境変数を直接使う場合は `method: "environment"` と `variable` を記録し、namespaceは不要。envchainなら `envchain <namespace> <command> ...` の引数として渡す。シェル展開や `eval` は使わず、値を表示するコマンドで確認しない。認証設定は送信の許可とは別で、機能ごとの送信範囲・費用も環境記録に残す。Jevのキーを先行登録する必要はない。
 
+Jev用の認証参照を登録する場合は、`credentials.typesafe` に `method: "envchain"`、`namespace: "digger"`、`variable: "DIGGER_TYPESAFE_API_KEY"` を提案する。他用途のキーと区別するための専用名で、既存の保存先を指定された場合はその参照を尊重する。ユーザーが登録するコマンドは `envchain --set digger DIGGER_TYPESAFE_API_KEY`。キー本体はコマンド実行後の入力欄で入力する。
+
+将来のJev連携ではこの参照から値を取得し、APIクライアントへ明示的に渡す。SDKが `TYPESAFE_API_KEY` を要求する場合だけ、その実行プロセス内で対応付ける。グローバル環境や他用途のキーを上書きしない。認証参照の登録だけで、未実装のJev連携を有効・検証済みと扱わない。
+
 環境記録は Markdown で、OS・CPU、確認日時、上記設定の確認対象値、選択機能ごとに以下を残す。
 
 | 項目 | 内容 |

@@ -56,21 +56,23 @@ PDF・音声・動画の原本を、調査ノートと同じ場所に置くか�
 
 APIキーが必要な機能では、キーを管理する方法、namespace、環境変数名などの参照情報を聞きます。キー本体を会話や設定ファイルへ貼り付ける必要はありません。
 
-envchain を使う場合、認証設定部分は次の形を想定しています。値は例で、実際の保存先はセットアップで確認します。
+Jev用のenvchain参照は、専用変数名 `DIGGER_TYPESAFE_API_KEY` とnamespace `digger` を提案します。既存の保存先が指定されていれば、その参照を使います。
 
 ```json
 {
   "credentials": {
     "typesafe": {
       "method": "envchain",
-      "namespace": "typesafe",
-      "variable": "TYPESAFE_API_KEY"
+      "namespace": "digger",
+      "variable": "DIGGER_TYPESAFE_API_KEY"
     }
   }
 }
 ```
 
 キー本体は envchain 側で管理します。digger は記録した方法で必要なプロセスへ渡し、値を表示せず利用可否を確認します。認証設定を登録することと、そのサービスへ資料を送ることは別です。送信する資料の範囲は、機能を有効にするときに決めます。
+
+登録コマンドは `envchain --set digger DIGGER_TYPESAFE_API_KEY` です。将来のJev連携でSDKが `TYPESAFE_API_KEY` を要求する場合は、その実行プロセス内だけで対応付けます。Jevの呼び出しはまだ未実装で、キーの登録だけでは連携を有効にしません。
 
 ### 不足ツールの導入と動作確認
 
