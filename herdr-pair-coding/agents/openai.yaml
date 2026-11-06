@@ -1,0 +1,5 @@
+interface:
+  display_name: "Herdr pair coding"
+  short_description: "Lead here, Codex coder panes on the right via hc"
+policy:
+  allow_implicit_invocation: false
