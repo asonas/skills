@@ -12,7 +12,7 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
 
 Summarize the day's work and append to the daily note in Obsidian.
 
-当日の作業記録を、Codexのセッション履歴・現在のセッション・利用可能なcman補助情報・永続メモリから整理してサマリーに含める。外部のタスク管理サービスは参照しない。
+当日の作業記録を、CodexとClaude Codeのセッション履歴・現在のセッション・利用可能なcman補助情報・永続メモリから整理してサマリーに含める。外部のタスク管理サービスは参照しない。
 
 ## LLM Wikiへの引き渡し
 
@@ -65,9 +65,9 @@ Read: $VAULT_DIR/daily/YYYY-MM-DD.md
 
 If it doesn't exist, ask the user whether to (a) create today's note and append, (b) append to yesterday's note instead, or (c) abort.
 
-### Step 3: Gather Codex Session History
+### Step 3: Gather Session History
 
-メインスレッドの context だけでは当日の作業を取りこぼすため、Codexのローカル履歴を主な横断ソースにする。cmanが使えないことは「作業なし」を意味しない。
+メインスレッドの context だけでは当日の作業を取りこぼすため、CodexとClaude Codeのローカル履歴を主な横断ソースにする。cmanが使えないことは「作業なし」を意味しない。
 
 #### Codex履歴
 
@@ -96,9 +96,13 @@ If it doesn't exist, ask the user whether to (a) create today's note and append,
 
 ユーザーの依頼文、計画、アシスタントの「実装した」という発言、ツール呼び出しだけでは完了扱いにしない。失敗や未解決事項がある場合は、後続の成功証拠で解消されたことを確認できない限り残す。取得できた履歴が一部だけの場合、「当日の全作業」ではなく「取得できた記録の範囲」と明示する。
 
+#### Claude Code履歴
+
+保存済みの `conversations/claude-*.md` を入口にし、成果の確認には元の `~/.claude/projects/<project>/<session-id>.jsonl` を読む。ツールの実行結果は `type: "user"` の記録にある `tool_result` ブロックで確認する。`<session-id>/subagents/` 配下と `isSidechain` の記録はサブエージェントとして集計から除く。除外、重複排除、完了判定はCodex履歴と同じ規則に従う。
+
 #### cmanの補助利用
 
-cmanのツールが利用可能なら、Codex履歴に含まれないClaude Codeセッションを補う目的で1つのサブエージェントに調査させてもよい。cmanは補助情報源であり、利用不可・エラーの場合もCodex履歴の処理を止めない。cmanの結果も上記の除外・重複排除・完了判定を通す。
+cmanのツールが利用可能なら、`conversations/` に保存されていないClaude Codeセッション（継続回収の開始日より前の会話など）を補う目的で1つのサブエージェントに調査させてもよい。cmanは補助情報源であり、利用不可・エラーの場合もCodex履歴の処理を止めない。cmanの結果も上記の除外・重複排除・完了判定を通す。
 
 出力はプロジェクトごとにまとめ、時系列がわかる場合は時刻を添える。
 
@@ -118,7 +122,7 @@ cmanのツールが利用可能なら、Codex履歴に含まれないClaude Code
 
 メインスレッドで以下のソースから「やったこと」のドラフトを組み立てる。
 
-1. **From Step 3 (Codex session history) — 当日全体の主な網羅ソース**
+1. **From Step 3 (Codex / Claude Code session history) — 当日全体の主な網羅ソース**
    - `conversations/` と対応するセッションJSONLから、対象日の作業・会話候補を話題別に整理する（`history.jsonl` は補助）
    - セッションのタイトルやユーザー入力ではなく、ツール結果・差分・検証結果で成果を確認する
    - 対象ソースが一部欠けている場合は、網羅できたと断言せず、取得範囲を明示する
@@ -128,9 +132,9 @@ cmanのツールが利用可能なら、Codex履歴に含まれないClaude Code
    - 履歴に現在セッションが含まれる場合は重複を除き、session context の方で上書き・肉付けする
    - 変更・作成したファイルの一覧など、session context にしかない具体は積極的に補う
 
-3. **From Step 3 (cman補助) — Codex履歴にないClaude Code作業**
+3. **From Step 3 (cman補助) — conversations/ にないClaude Code作業**
    - cmanが利用できた場合だけ補助情報源として使う
-   - Codex履歴と重複する項目はCodex側の詳細を優先し、サブエージェントを別成果として数えない
+   - セッション履歴と重複する項目は履歴側の詳細を優先し、サブエージェントを別成果として数えない
 
 4. **From Claude Code auto memory（永続メモリ）**
    - セッションを跨いで保持されるメモリファイルを参照する
@@ -138,8 +142,8 @@ cmanのツールが利用可能なら、Codex履歴に含まれないClaude Code
    - 今日の日付や作業内容に関連するエントリ、今日更新されたメモリファイルがあれば含める
 
 5. **情報の統合**
-   - 骨格はCodex履歴（当日の対象セッション）。そこへ現在 session context、cman補助、auto memoryを重ねる
-   - 優先順位（同じ作業に複数ソースが触れている場合の詳細さ）: 現在セッションコンテキスト > CodexセッションJSONL > cman補助 > auto memory
+   - 骨格はCodexとClaude Codeの履歴（当日の対象セッション）。そこへ現在 session context、cman補助、auto memoryを重ねる
+   - 優先順位（同じ作業に複数ソースが触れている場合の詳細さ）: 現在セッションコンテキスト > セッションJSONL > cman補助 > auto memory
    - 重複を除去し、プロジェクトごと or 時系列でグループ化する
    - 散文 1 段落 + 箇条書き の組み合わせで構わない（既存 daily note のフォーマットに合わせる）
    - セッションが多い日はログが長くなる。主要な作業を優先しつつ、Step 5 でユーザーに提示して取捨を委ねる
@@ -271,5 +275,5 @@ Always respond in Japanese.
 - If the `## ログ` section doesn't exist (古いテンプレで作られた daily note の場合), create it at the end of the file before appending
 - Keep each log entry concise (1 行 1 作業)
 - Use the `- HH:MM <カテゴリ>: <内容>` format consistently
-- 当日像の主な網羅は Codex のセッション履歴 (Step 3) が担う。cmanはCodex履歴にないClaude Code作業を補う情報源であり、現在 session context は該当セッションの詳細を肉付けする役割
+- 当日像の主な網羅は Codex と Claude Code のセッション履歴 (Step 3) が担う。cmanは conversations/ にないClaude Code作業を補う情報源であり、現在 session context は該当セッションの詳細を肉付けする役割
 - セッション履歴やcmanから返却された情報を daily note に書き込む前に、明らかに事実と異なるもの・幻覚が紛れ込んでいないか軽く目視確認すること。成果を断定しすぎていないか（着手止まりを完了扱いにしていないか）、取得範囲を超えて「当日の全作業」と言っていないかを確認する
