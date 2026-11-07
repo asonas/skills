@@ -25,6 +25,7 @@ Skills may contain personal workflow conventions, but must not contain conversat
 ```sh
 mise exec -- ruby test/apple_interface_guidelines_scripts_test.rb
 bash test/apple_interface_guidelines_skill_test.sh
+bash test/herdr_lead_muse_task_test.sh
 mise exec -- ruby test/vault_state_test.rb
 ```
 

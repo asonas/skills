@@ -1,0 +1,135 @@
+#!/bin/bash
+# Start and follow a herdr-lead task through hc. Callers outside Herdr
+# (Muse over Rex) have a minimal PATH, and hc starts programs with the
+# core's environment rather than the caller's, so the usual install
+# locations are added here and passed to the lead explicitly.
+set -euo pipefail
+
+export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin"
+
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STATE_DIR="${MUSE_TASK_STATE:-$HOME/.local/state/muse-task}"
+CODER_MODEL="${MUSE_TASK_CODER_MODEL:-gpt-6.1-sol}"
+CODER_EFFORT="${MUSE_TASK_CODER_EFFORT:-low}"
+
+usage() {
+    cat <<'USAGE'
+Usage:
+  muse-task start <repo> <task>   Start a lead in the repository
+  muse-task ls                    List tasks and their status
+  muse-task wait <name> [secs]    Wait until the lead stops working (default 600)
+  muse-task result <name>         Print the result file, or the screen if none yet
+  muse-task say <name> <text>     Send an answer or instruction to the lead
+
+<repo> is a path, or a name or owner/name known to ghq.
+USAGE
+}
+
+die() { echo "muse-task: $*" >&2; exit 1; }
+
+resolve_repo() {
+    local arg="$1" matches
+    if [ -d "$arg" ]; then (cd "$arg" && pwd); return; fi
+    matches="$(ghq list --full-path --exact "$arg" 2>/dev/null || true)"
+    [ -n "$matches" ] || die "repository not found: $arg"
+    [ "$(printf '%s\n' "$matches" | wc -l | tr -d ' ')" = 1 ] \
+        || die "ambiguous repository $arg; use owner/name:
+$matches"
+    printf '%s\n' "$matches"
+}
+
+task_dir() {
+    local d="$STATE_DIR/$1"
+    [ -f "$d/meta" ] || die "unknown task: $1 (see muse-task ls)"
+    printf '%s\n' "$d"
+}
+
+cmd_start() {
+    [ $# -eq 2 ] || { usage >&2; exit 2; }
+    local repo base name dir result prompt out
+    repo="$(resolve_repo "$1")"
+    base="$(basename "$repo" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-\n' '-' | cut -c1-16)"
+    name="lead-${base}-$(date +%m%d%H%M%S)"
+    dir="$STATE_DIR/$name"
+    result="$dir/result.md"
+    mkdir -p "$dir"
+    printf '%s\n' "$2" > "$dir/task.md"
+    printf 'repo=%s\nstarted=%s\n' "$repo" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$dir/meta"
+
+    prompt="Read ${SKILL_DIR}/SKILL.md and act as the lead it describes.
+Repository: ${repo}
+Result file: ${result}
+Coder model: ${CODER_MODEL}, effort ${CODER_EFFORT}
+Task:
+$2"
+
+    out="$(hc run --bg --json --outlive-parent --name "$name" --cwd "$repo" \
+        --label muse-task=1 --label "muse-task.result=$result" \
+        -- /usr/bin/env "PATH=$PATH" claude --permission-mode auto -n "$name" "$prompt")" \
+        || { rm -rf "$dir"; die "hc run failed: $out"; }
+    printf '%s\n' "$out" > "$dir/launch.json"
+    echo "name: $name"
+    echo "terminal: $(printf '%s' "$out" | jq -r '.address // .terminal // "unknown"')"
+    echo "repo: $repo"
+    echo "result: $result"
+}
+
+status_of() {
+    hc get "$1" --json 2>/dev/null \
+        | jq -r 'if .state != "live" then "exited"
+                 else (.status.state // "unknown") end' 2>/dev/null \
+        || echo "gone"
+}
+
+cmd_ls() {
+    local d name repo
+    [ -d "$STATE_DIR" ] || { echo "no tasks"; return; }
+    for d in "$STATE_DIR"/*/; do
+        [ -f "$d/meta" ] || continue
+        name="$(basename "$d")"
+        repo="$(sed -n 's/^repo=//p' "$d/meta")"
+        printf '%s\t%s\t%s\t%s\n' "$name" "$(status_of "$name")" \
+            "$([ -f "$d/result.md" ] && echo result || echo no-result)" "$repo"
+    done
+}
+
+cmd_wait() {
+    [ $# -ge 1 ] || { usage >&2; exit 2; }
+    task_dir "$1" > /dev/null
+    local out reason
+    out="$(hc wait "$1" --json --timeout "${2:-600}" 2>&1 || true)"
+    reason="$(printf '%s' "$out" | jq -r '.reason // empty' 2>/dev/null || true)"
+    if [ "$reason" = timeout ]; then
+        echo "still working (wait again, or read the result so far)"
+    else
+        echo "stopped: $(status_of "$1")"
+    fi
+}
+
+cmd_result() {
+    [ $# -eq 1 ] || { usage >&2; exit 2; }
+    local d; d="$(task_dir "$1")"
+    if [ -f "$d/result.md" ]; then
+        cat "$d/result.md"
+    else
+        echo "(no result file yet; status: $(status_of "$1"); last screen lines follow)"
+        hc read --lines 40 "$1" 2>/dev/null || echo "(terminal is gone)"
+    fi
+}
+
+cmd_say() {
+    [ $# -eq 2 ] || { usage >&2; exit 2; }
+    task_dir "$1" > /dev/null
+    hc send "$1" "$2" > /dev/null
+    echo "sent to $1"
+}
+
+case "${1:-}" in
+    start) shift; cmd_start "$@" ;;
+    ls) shift; cmd_ls ;;
+    wait) shift; cmd_wait "$@" ;;
+    result) shift; cmd_result "$@" ;;
+    say) shift; cmd_say "$@" ;;
+    -h|--help|help) usage ;;
+    *) usage >&2; exit 2 ;;
+esac
