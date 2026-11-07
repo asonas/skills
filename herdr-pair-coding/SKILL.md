@@ -19,7 +19,7 @@ disable-model-invocation: true
 
 ## コーダーの起動コマンド
 
-既定は `gpt-6.1-sol`、effort `high`。呼び出し時にユーザーがモデルや effort を指定したら、その値で置き換える。指定が無い項目だけ既定を使う。既定値も argv に必ず明示し、`~/.codex/config.toml` の設定に任せない。
+既定は `gpt-6.1-sol`、effort `low`。呼び出し時にユーザーがモデルや effort を指定したら、その値で置き換える。指定が無い項目だけ既定を使う。既定値も argv に必ず明示し、`~/.codex/config.toml` の設定に任せない。
 
 ```json
 ["codex", "--no-daemon", "-m", "<model>", "-c", "model_reasoning_effort=\"<effort>\"", "-C", "<作業フォルダ>", "<最初の指示>"]
