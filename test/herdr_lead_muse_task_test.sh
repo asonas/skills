@@ -15,9 +15,10 @@ printf '%s\0' "$@" >> "$FAKE_HC_LOG"; printf '\n' >> "$FAKE_HC_LOG"
 case "$1" in
     run) [ -z "${FAKE_HC_RUN_FAIL:-}" ] || { echo '{"error":{}}'; exit 1; }
          echo '{"address":"t9","name":"x"}' ;;
-    get) echo '{"state":"live","status":{"state":"idle"}}' ;;
+    get) if [ -n "${FAKE_HC_STARTING:-}" ]; then echo '{"state":"live","status":null}'
+         else echo '{"state":"live","status":{"state":"idle"}}'; fi ;;
     wait) echo '{"reason":"timeout"}' ;;
-    read) echo "screen line" ;;
+    read) echo "${FAKE_HC_SCREEN:-screen line}" ;;
     send) echo '{}' ;;
 esac
 EOF
@@ -55,6 +56,22 @@ tail -1 "$tmp/hc.log" | tr '\0' ' ' | grep -q "send $name Use option B" || fail 
 
 if "$script" start nowhere "x" 2> /dev/null; then fail "unknown repo accepted"; fi
 if "$script" result lead-unknown 2> /dev/null; then fail "unknown task accepted"; fi
+
+dialog="Quick safety check: Is this a project you created or one you trust this folder"
+FAKE_HC_STARTING=1 FAKE_HC_SCREEN="$dialog" "$script" wait "$name" | grep -q "^blocked:" \
+    || fail "trust dialog not reported by wait"
+if "$script" trust "$name" 2> /dev/null; then fail "trust answered without a dialog"; fi
+FAKE_HC_SCREEN="$dialog" "$script" trust "$name" | grep -q "^trusted" || fail "trust"
+tail -1 "$tmp/hc.log" | tr '\0' ' ' | grep -q "keys $name down enter" || fail "trust did not answer Yes"
+
+"$script" close "$name" | grep -q "closed $name" || fail "close"
+tr '\0' ' ' < "$tmp/hc.log" | grep -q "kill $name" || fail "close did not kill the lead"
+[ -f "$tmp/state/$name/result.md" ] || fail "close removed the result"
+
+# Coders are named <lead>-c1, which must still fit hc's 32-character limit.
+mkdir -p "$tmp/repos/github.com/acme/jellyfin-viewer.example"
+long="$("$script" start "$tmp/repos/github.com/acme/jellyfin-viewer.example" "x" | sed -n 's/^name: //p')"
+[ "$(( ${#long} + 3 ))" -le 32 ] || fail "coder name for $long exceeds 32 characters"
 
 before="$(ls "$tmp/state" | wc -l)"
 if FAKE_HC_RUN_FAIL=1 "$script" start widget "x" 2> /dev/null; then fail "failed launch reported success"; fi

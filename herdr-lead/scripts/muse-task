@@ -20,6 +20,8 @@ Usage:
   muse-task wait <name> [secs]    Wait until the lead stops working (default 600)
   muse-task result <name>         Print the result file, or the screen if none yet
   muse-task say <name> <text>     Send an answer or instruction to the lead
+  muse-task trust <name>          Answer "Yes" to Claude's folder-trust dialog (after asonas approves)
+  muse-task close <name>         End the lead and its coders; the result file stays
 
 <repo> is a path, or a name or owner/name known to ghq.
 USAGE
@@ -48,7 +50,7 @@ cmd_start() {
     [ $# -eq 2 ] || { usage >&2; exit 2; }
     local repo base name dir result prompt out
     repo="$(resolve_repo "$1")"
-    base="$(basename "$repo" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-\n' '-' | cut -c1-16)"
+    base="$(basename "$repo" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-\n' '-' | cut -c1-13)"
     name="lead-${base}-$(date +%m%d%H%M%S)"
     dir="$STATE_DIR/$name"
     result="$dir/result.md"
@@ -77,8 +79,14 @@ $2"
 status_of() {
     hc get "$1" --json 2>/dev/null \
         | jq -r 'if .state != "live" then "exited"
-                 else (.status.state // "unknown") end' 2>/dev/null \
+                 else (.status.state // "starting") end' 2>/dev/null \
         || echo "gone"
+}
+
+# Claude reports no status until its folder-trust dialog is answered, and
+# hc wait would then wait for the program to exit.
+asks_trust() {
+    hc read --lines 0 "$1" 2>/dev/null | grep -q "trust this folder"
 }
 
 cmd_ls() {
@@ -96,7 +104,18 @@ cmd_ls() {
 cmd_wait() {
     [ $# -ge 1 ] || { usage >&2; exit 2; }
     task_dir "$1" > /dev/null
-    local out reason
+    local out reason i
+    for i in $(seq 30); do
+        [ "$(status_of "$1")" = starting ] || break
+        if asks_trust "$1"; then
+            echo "blocked: Claude asks whether to trust the repository folder."
+            echo "Ask asonas. If approved: muse-task trust $1"
+            return
+        fi
+        sleep 2
+    done
+    [ "$(status_of "$1")" != starting ] || {
+        echo "starting: no agent status after 60s; check with muse-task result $1"; return; }
     out="$(hc wait "$1" --json --timeout "${2:-600}" 2>&1 || true)"
     reason="$(printf '%s' "$out" | jq -r '.reason // empty' 2>/dev/null || true)"
     if [ "$reason" = timeout ]; then
@@ -124,12 +143,34 @@ cmd_say() {
     echo "sent to $1"
 }
 
+# Answers Claude's folder-trust dialog with "Yes". Run only after asonas
+# approves trusting that repository.
+cmd_trust() {
+    [ $# -eq 1 ] || { usage >&2; exit 2; }
+    task_dir "$1" > /dev/null
+    asks_trust "$1" || die "$1 is not asking for folder trust"
+    hc keys "$1" down enter > /dev/null
+    echo "trusted; the lead continues. Use muse-task wait $1"
+}
+
+# Leads stay alive for follow-up answers, so they are ended explicitly.
+# Coders are the lead's children and end with it. The result file stays.
+cmd_close() {
+    [ $# -eq 1 ] || { usage >&2; exit 2; }
+    task_dir "$1" > /dev/null
+    hc kill "$1" > /dev/null 2>&1 || true
+    hc rm "$1" > /dev/null 2>&1 || true
+    echo "closed $1"
+}
+
 case "${1:-}" in
     start) shift; cmd_start "$@" ;;
     ls) shift; cmd_ls ;;
     wait) shift; cmd_wait "$@" ;;
     result) shift; cmd_result "$@" ;;
     say) shift; cmd_say "$@" ;;
+    trust) shift; cmd_trust "$@" ;;
+    close) shift; cmd_close "$@" ;;
     -h|--help|help) usage ;;
     *) usage >&2; exit 2 ;;
 esac
