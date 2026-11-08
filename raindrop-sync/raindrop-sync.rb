@@ -4,7 +4,7 @@
 # raindrop-sync.rb
 #
 # Sync Raindrop.io bookmarks into the asonas Obsidian vault under bookmarks/.
-# Each bookmark becomes a single markdown file named {raindrop_id}.md.
+# Each bookmark becomes a single markdown file named after its title; raindrop_id remains its stable identity.
 # Page content is fetched via defuddle and embedded in the body.
 #
 # Usage:
@@ -22,6 +22,7 @@ require 'time'
 require 'open3'
 require 'optparse'
 require 'timeout'
+require_relative 'bookmark-files'
 
 # Scheduled task sessions run without LANG, so default_external falls back to
 # US-ASCII and defuddle's UTF-8 output raises Encoding::CompatibilityError.
@@ -181,8 +182,8 @@ def render_markdown(item, body_md, body_error)
   lines.join("\n")
 end
 
-def write_bookmark(item, dry_run:)
-  path = File.join(VAULT_BOOKMARKS, "#{item['_id']}.md")
+def write_bookmark(item, dry_run:, catalog:)
+  path = catalog.path_for(item['_id'], item['title'])
   body_md, body_error = defuddle_markdown(item['link'])
   content = render_markdown(item, body_md, body_error)
   if dry_run
@@ -220,10 +221,11 @@ puts "Fetching bookmarks (collection=#{options[:collection]}, since=#{since || '
 items = fetch_bookmarks(token, collection_id: options[:collection], since: since)
 puts "Found #{items.size} bookmark(s) to sync."
 
+catalog = BookmarkFiles::Catalog.new(File.dirname(VAULT_BOOKMARKS))
 started_at = Time.now.utc
 items.each_with_index do |item, i|
   puts "[#{i + 1}/#{items.size}] #{item['title']} (#{item['domain']})"
-  write_bookmark(item, dry_run: options[:dry_run])
+  write_bookmark(item, dry_run: options[:dry_run], catalog: catalog)
 end
 
 unless options[:dry_run]

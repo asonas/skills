@@ -10,7 +10,7 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
 
 # /raindrop-sync - Raindrop -> Obsidian Bookmarks Sync
 
-Raindrop.io API から取得したブックマークを `$VAULT_DIR/bookmarks/` に 1 ファイル 1 ブックマークの markdown として書き出すスキルです。各ファイルは raindrop_id を名前に持ち、frontmatter にメタデータ、本文に defuddle で抽出した記事本文を含みます。
+Raindrop.io API から取得したブックマークを `$VAULT_DIR/bookmarks/` に 1 ファイル 1 ブックマークの markdown として書き出すスキルです。各ファイルは記事タイトルに由来する読みやすい名前を持ち、frontmatter にメタデータ、本文に defuddle で抽出した記事本文を含みます。
 
 karpathy の "LLM Wiki" 3 層モデルで言う **Raw Sources 層の拡張**です。daily / notes / essays に並ぶ第 4 のソースとして `/wiki-update ingest` から参照されます。
 
@@ -47,7 +47,7 @@ karpathy の "LLM Wiki" 3 層モデルで言う **Raw Sources 層の拡張**で�
 3. 各ブックマークについて:
    - `defuddle parse --md <url>` で本文を markdown 化（タイムアウト 30 秒）
    - frontmatter（raindrop_id, url, title, domain, collection, tags, saved, last_updated, last_synced, defuddle_status）+ 本文 + raindrop の excerpt / note / highlights を組み立て
-   - `bookmarks/{raindrop_id}.md` に上書き保存
+   - `raindrop_id` で既存ファイルを検索して上書き保存。新規は `bookmarks/{記事タイトル}.md` に保存。同名がVault内にある場合は `（ID）` 相当の `(ID)` を付加する
 4. `bookmarks/.last_sync` を更新
 
 ## 出力ファイル書式
@@ -99,7 +99,10 @@ defuddle で抽出した本文 markdown
 
 ## 既存ファイルとの関係
 
-- 同じ raindrop_id のファイルは毎回上書き。手で編集した内容は失われる前提
+- 同じ raindrop_id のファイルは毎回上書き。タイトルが変わっても既存ファイル名は維持し、Wikiの参照を保つ。旧数字名もIDで認識する。手で編集した内容は失われる前提
+- 新規ファイル名はタイトルからパス・Wikiリンクの特殊文字を除き、UTF-8で180バイト以内に収める。空タイトルは `Untitled bookmark`。Vault全体で大文字小文字・Unicode正規化後の重複を避ける
+- 同じIDを持つファイルが複数ある場合や、bookmarks内のファイルにIDがない場合は停止する。勝手に上書き先を選ばない
+- 過去分の改名は同期とは別にバックアップと参照更新を伴う移行として行う。ファイル名だけを変えた場合は `last_synced` を変更せず、Wikiの再ingestは不要。qmdは更新する
 - ブックマークを raindrop 側で削除した場合、vault からは消えない（ゴーストファイルとして残る）。整理は別途 `/wiki-update lint` で検出する想定
 
 ## /today との連携
