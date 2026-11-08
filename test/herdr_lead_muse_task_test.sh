@@ -19,7 +19,10 @@ case "$1" in
          else echo '{"state":"live","status":{"state":"idle"}}'; fi ;;
     wait) echo '{"reason":"timeout"}' ;;
     read) echo "${FAKE_HC_SCREEN:-screen line}" ;;
-    send) echo '{}' ;;
+    ls) [ -z "${FAKE_HC_LS_FAIL:-}" ] || exit 1
+        empty='{"terminals":[]}'; printf '%s\n' "${FAKE_HC_LS:-$empty}" ;;
+    send) [ -z "${FAKE_HC_SEND_FAIL:-}" ] || exit 1
+          echo '{}' ;;
 esac
 EOF
 cat > "$tmp/bin/ghq" <<EOF
@@ -109,4 +112,64 @@ long_second="$("$script" start "$tmp/repos/github.com/acme/jellyfin-viewer.examp
 [ "$long_first" != "$long_second" ] || fail "long repo collision shares a name"
 [[ "$long_second" == *-2 ]] || fail "long repo collision lacks suffix"
 [ "$(( ${#long_second} + 3 ))" -le 32 ] || fail "suffixed coder name exceeds 32 characters"
+# Notifications disclose only a safe status token and the result path.
+export MUSE_TASK_STATE="$tmp/state"
+export FAKE_HC_LS='{"terminals":[{"address":"r1"}]}'
+result="$tmp/state/$name/result.md"
+printf 'status: needs-decision\n\nBODY-SECRET\n' > "$result"
+send_count() { tr '\0' '\t' < "$tmp/hc.log" | awk -F '\t' '$1 == "send" { n++ } END { print n+0 }'; }
+before="$(send_count)"
+"$script" notify "$name" | grep -qx 'notified r1' || fail "notify success"
+[ "$(send_count)" = "$((before + 1))" ] || fail "notify send count"
+printf 'send\0r1\0[muse-task] %s finished: status=needs-decision result=%s\0\n' "$name" "$result" > "$tmp/expected"
+tail -1 "$tmp/hc.log" > "$tmp/actual"
+cmp -s "$tmp/expected" "$tmp/actual" || fail "notify full send argv"
+if LC_ALL=C grep -a -q BODY-SECRET "$tmp/hc.log"; then fail "result body leaked"; fi
+printf 'ls\0--json\0--label\0muse-task.reviewer=1\0\n' > "$tmp/expected"
+tail -2 "$tmp/hc.log" | head -1 > "$tmp/actual"
+cmp -s "$tmp/expected" "$tmp/actual" || fail "default reviewer label argv"
+MUSE_TASK_REVIEWER_LABEL=x.y=2 "$script" notify "$name" > /dev/null
+printf 'ls\0--json\0--label\0x.y=2\0\n' > "$tmp/expected"
+tail -2 "$tmp/hc.log" | head -1 > "$tmp/actual"
+cmp -s "$tmp/expected" "$tmp/actual" || fail "custom reviewer label argv"
+
+command rm "$result"
+"$script" notify "$name" > /dev/null
+printf 'send\0r1\0[muse-task] %s finished: status=unknown result=%s\0\n' "$name" "$result" > "$tmp/expected"
+tail -1 "$tmp/hc.log" > "$tmp/actual"
+cmp -s "$tmp/expected" "$tmp/actual" || fail "missing result status"
+for contents in 'no status line' 'status:   ' 'status: done BODY-SECRET'; do
+    printf '%s\n' "$contents" > "$result"
+    "$script" notify "$name" > /dev/null
+    tail -1 "$tmp/hc.log" > "$tmp/actual"
+    cmp -s "$tmp/expected" "$tmp/actual" || fail "unsafe or absent status"
+done
+printf 'status:  blocked  \nstatus: done\n' > "$result"
+"$script" notify "$name" > /dev/null
+tail -1 "$tmp/hc.log" | tr '\0' '\t' | grep -q 'status=blocked result=' || fail "first status trimmed"
+
+for terminals in '{"terminals":[]}' '{"terminals":[{"address":"r1"},{"address":"r2"}]}'; do
+    before="$(send_count)"
+    FAKE_HC_LS="$terminals" "$script" notify "$name" > /dev/null 2> "$tmp/warning" || fail "target count failed lead"
+    [ "$(send_count)" = "$before" ] || fail "ambiguous reviewer notified"
+    grep -q 'muse-task: warning:' "$tmp/warning" || fail "target count warning missing"
+done
+before="$(send_count)"
+FAKE_HC_LS_FAIL=1 "$script" notify "$name" > /dev/null 2> "$tmp/warning" || fail "ls failure failed lead"
+[ "$(send_count)" = "$before" ] || fail "sent after ls failure"
+grep -q 'warning: hc ls failed' "$tmp/warning" || fail "ls failure warning missing"
+FAKE_HC_SEND_FAIL=1 "$script" notify "$name" > /dev/null 2> "$tmp/warning" || fail "send failure failed lead"
+grep -q 'warning: hc send failed' "$tmp/warning" || fail "send failure warning missing"
+before="$(send_count)"
+for invalid in lead-unknown '../escape' $'lead-\ninjected'; do
+    "$script" notify "$invalid" > /dev/null 2> "$tmp/warning" || fail "invalid task failed lead"
+    grep -q 'muse-task: warning:' "$tmp/warning" || fail "invalid task warning missing"
+done
+[ "$(send_count)" = "$before" ] || fail "invalid task notified"
+if "$script" notify 2> /dev/null; then fail "notify accepted no arguments"; else
+    [ "$?" = 2 ] || fail "notify usage exit code"
+fi
+if "$script" notify "$name" extra 2> /dev/null; then fail "notify accepted extra argument"; else
+    [ "$?" = 2 ] || fail "notify extra argument exit code"
+fi
 echo ok

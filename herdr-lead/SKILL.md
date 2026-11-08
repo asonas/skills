@@ -84,4 +84,10 @@ status: done | needs-decision | blocked
 - `needs-decision`: 依頼主の判断が要る。
 - `blocked`: 環境や権限の問題で進めない。何が起きたかと、試したことを書く。
 
-結果ファイルを書いたら、そのターンを終える。
+status が `done`、`needs-decision`、`blocked` のどれであっても、結果ファイルを書き終えたら
+`<このSKILL.mdと同じフォルダ>/scripts/muse-task notify <自分の名前>` を実行してから、そのターンを終える。
+自分の名前は結果ファイルのパスの親フォルダ名（`lead-...`）。
+この知らせは確認の依頼であって承認ではなく、受け取った側は取り込みや push を人間の返事なしに進めない。
+
+レビュー役のセッションでは一度 `hc label <terminal> muse-task.reviewer=1` を実行しておく。
+送り先が 0 個や複数なら notify は警告を出すだけで終わる。

@@ -19,11 +19,13 @@ Usage:
   muse-task ls                    List tasks and their status
   muse-task wait <name> [secs]    Wait until the lead stops working (default 600)
   muse-task result <name>         Print the result file, or the screen if none yet
+  muse-task notify <name>         Tell the reviewer session the lead finished
   muse-task say <name> <text>     Send an answer or instruction to the lead
   muse-task trust <name>          Answer "Yes" to Claude's folder-trust dialog (after asonas approves)
   muse-task close <name>          End the lead and its coders; the result file stays
 
 <repo> is a path, or a name or owner/name known to ghq.
+Reviewer: run once in the reviewing session: hc label <terminal> muse-task.reviewer=1
 USAGE
 }
 
@@ -147,6 +149,45 @@ cmd_result() {
     fi
 }
 
+cmd_notify() {
+    [ $# -eq 1 ] || { usage >&2; exit 2; }
+    local name="$1" label="${MUSE_TASK_REVIEWER_LABEL:-muse-task.reviewer=1}"
+    local dir result status targets count
+    case "$name" in
+        */*|*$'\n'*|*$'\r'*) echo "muse-task: warning: invalid task name; not notified" >&2; return 0 ;;
+    esac
+    dir="$STATE_DIR/$name"
+    [ -f "$dir/meta" ] || {
+        echo "muse-task: warning: unknown task: $name; not notified" >&2; return 0;
+    }
+    result="$dir/result.md"
+    status="$(awk '/^status:/ { sub(/^status:[[:space:]]*/, ""); sub(/[[:space:]]*$/, ""); print; exit }' "$result" 2>/dev/null)" || status=unknown
+    [[ "$status" =~ ^[a-z-]+$ ]] || status=unknown
+    if ! targets="$(hc ls --json --label "$label" 2>/dev/null)"; then
+        echo "muse-task: warning: hc ls failed for label $label; not notified" >&2
+        return 0
+    fi
+    if ! targets="$(printf '%s' "$targets" | jq -r '.terminals[].address' 2>/dev/null)"; then
+        echo "muse-task: warning: invalid hc ls response; not notified" >&2
+        return 0
+    fi
+    if [ -z "$targets" ]; then
+        echo "muse-task: warning: no reviewer terminal with label $label; not notified" >&2
+        return 0
+    fi
+    count="$(printf '%s\n' "$targets" | wc -l | tr -d ' ')"
+    if [ "$count" != 1 ]; then
+        echo "muse-task: warning: multiple reviewer terminals with label $label; not notified" >&2
+        return 0
+    fi
+    if hc send "$targets" "[muse-task] $name finished: status=$status result=$result" > /dev/null 2>&1; then
+        echo "notified $targets"
+    else
+        echo "muse-task: warning: hc send failed for $targets; not notified" >&2
+    fi
+    return 0
+}
+
 cmd_say() {
     [ $# -eq 2 ] || { usage >&2; exit 2; }
     task_dir "$1" > /dev/null
@@ -179,6 +220,7 @@ case "${1:-}" in
     ls) shift; cmd_ls ;;
     wait) shift; cmd_wait "$@" ;;
     result) shift; cmd_result "$@" ;;
+    notify) shift; cmd_notify "$@" ;;
     say) shift; cmd_say "$@" ;;
     trust) shift; cmd_trust "$@" ;;
     close) shift; cmd_close "$@" ;;
