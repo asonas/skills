@@ -21,7 +21,7 @@ Usage:
   muse-task result <name>         Print the result file, or the screen if none yet
   muse-task say <name> <text>     Send an answer or instruction to the lead
   muse-task trust <name>          Answer "Yes" to Claude's folder-trust dialog (after asonas approves)
-  muse-task close <name>         End the lead and its coders; the result file stays
+  muse-task close <name>          End the lead and its coders; the result file stays
 
 <repo> is a path, or a name or owner/name known to ghq.
 USAGE
