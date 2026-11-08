@@ -76,4 +76,37 @@ long="$("$script" start "$tmp/repos/github.com/acme/jellyfin-viewer.example" "x"
 before="$(ls "$tmp/state" | wc -l)"
 if FAKE_HC_RUN_FAIL=1 "$script" start widget "x" 2> /dev/null; then fail "failed launch reported success"; fi
 [ "$(ls "$tmp/state" | wc -l)" = "$before" ] || fail "failed launch left a task behind"
+
+# Freeze only the name timestamp; metadata dates still use the real date.
+cat > "$tmp/bin/date" <<'EOF'
+#!/bin/bash
+if [ "$*" = +%m%d%H%M%S ]; then
+    echo 0102030405
+else
+    exec /bin/date "$@"
+fi
+EOF
+chmod +x "$tmp/bin/date"
+export MUSE_TASK_STATE="$tmp/frozen-state"
+first="$("$script" start widget "First task" | sed -n 's/^name: //p')"
+second="$("$script" start widget "Second task" | sed -n 's/^name: //p')"
+[ "$first" != "$second" ] || fail "same-second starts share a name"
+for task in "$first" "$second"; do
+    [ "${#task}" -le 29 ] || fail "lead name exceeds 29 characters: $task"
+    [ -d "$MUSE_TASK_STATE/$task" ] || fail "missing task folder: $task"
+done
+grep -qx 'First task' "$MUSE_TASK_STATE/$first/task.md" || fail "first task overwritten"
+grep -qx 'Second task' "$MUSE_TASK_STATE/$second/task.md" || fail "second task missing"
+if FAKE_HC_RUN_FAIL=1 "$script" start widget "Third task" 2> /dev/null; then
+    fail "failed same-second launch reported success"
+fi
+[ "$(ls "$MUSE_TASK_STATE" | wc -l | tr -d ' ')" = 2 ] || fail "failed same-second launch changed task folders"
+grep -qx 'First task' "$MUSE_TASK_STATE/$first/task.md" || fail "failed launch removed first task"
+grep -qx 'Second task' "$MUSE_TASK_STATE/$second/task.md" || fail "failed launch removed second task"
+
+long_first="$("$script" start "$tmp/repos/github.com/acme/jellyfin-viewer.example" "x" | sed -n 's/^name: //p')"
+long_second="$("$script" start "$tmp/repos/github.com/acme/jellyfin-viewer.example" "y" | sed -n 's/^name: //p')"
+[ "$long_first" != "$long_second" ] || fail "long repo collision shares a name"
+[[ "$long_second" == *-2 ]] || fail "long repo collision lacks suffix"
+[ "$(( ${#long_second} + 3 ))" -le 32 ] || fail "suffixed coder name exceeds 32 characters"
 echo ok

@@ -48,13 +48,24 @@ task_dir() {
 
 cmd_start() {
     [ $# -eq 2 ] || { usage >&2; exit 2; }
-    local repo base name dir result prompt out
+    local repo base name dir result prompt out stamp suffix attempt base_limit
     repo="$(resolve_repo "$1")"
     base="$(basename "$repo" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-\n' '-' | cut -c1-13)"
-    name="lead-${base}-$(date +%m%d%H%M%S)"
-    dir="$STATE_DIR/$name"
+    mkdir -p "$STATE_DIR"
+    stamp="$(date +%m%d%H%M%S)"
+    attempt=1
+    suffix=""
+    while :; do
+        base_limit=$((13 - ${#suffix}))
+        name="lead-${base:0:base_limit}-${stamp}${suffix}"
+        dir="$STATE_DIR/$name"
+        if mkdir "$dir" 2>/dev/null; then break; fi
+        [ -d "$dir" ] || die "cannot create task folder: $dir"
+        [ "$attempt" -lt 99 ] || die "too many task name collisions: $name"
+        attempt=$((attempt + 1))
+        suffix="-$attempt"
+    done
     result="$dir/result.md"
-    mkdir -p "$dir"
     printf '%s\n' "$2" > "$dir/task.md"
     printf 'repo=%s\nstarted=%s\n' "$repo" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$dir/meta"
 
