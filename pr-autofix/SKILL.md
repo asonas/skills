@@ -1,13 +1,12 @@
 ---
 name: pr-autofix
-description: PRをsanity-reviewでレビューし、指摘を深刻度 x 修正難度でトリアージして、選んだ組み合わせだけをAIが修正・再レビューする。
+description: PRの現状をまとめ、sanity-reviewの指摘を深刻度 x 修正難度でトリアージし、ユーザーが選んだ組み合わせだけをAIが修正・再レビューする。「このPRどうなってる？」とPRの状況を訊かれた時、PRのレビューと指摘の修正を頼まれた時に使う。
 argument-hint: "[PR-URL-or-number]"
-disable-model-invocation: true
 ---
 
-# PRのトリアージと自動修正
+# PRの現状確認、トリアージ、自動修正
 
-1本のpull requestについて、レビュー、トリアージ、修正、再レビューの往復を指揮する。このsessionは指揮役で、レビューと修正はsubagentに任せる。
+1本のpull requestについて、現状をまとめ、ユーザーが望めばレビュー、トリアージ、修正、再レビューの往復を指揮する。このsessionは指揮役で、レビューと修正はsubagentに任せる。
 
 自動修正は、直した箇所の周りに別の不具合や仕様の変化を持ち込みうる。どの組み合わせならその危険を許容できるかを決めるのはユーザーである。指揮役は、決められた範囲を自分では広げない。
 
@@ -15,22 +14,47 @@ disable-model-invocation: true
 
 - plugin `sanity-review@shokai-agent-skills`: レビューに使う。Skill名は `sanity-review:sanity-review`
 - plugin `codex-consultation@shokai-agent-skills`: sanity-reviewと、修正のpush前の確認に使う。Skill名は `codex-consultation:codex-consultation`
+- `~/.claude/scripts/codex-platform/codex`: Claude Codeから実行する `codex exec` を、platform.openai.comのAPIクレジットで動かす中継。SessionStart hookがPATHの先頭に置く
 
-どちらかがSkill toolで呼べなければ、installをユーザーに依頼して止まる。
+## PRへのコメントの印
 
-## 手順1: 実行環境とPRを確かめる
+このskillがPRに書くコメントは、先頭行に次の印を付ける。手順1で、前回の結果を探すのに使う。
+
+- トリアージ: `<!-- pr-autofix:triage -->`
+- 最後の状態: `<!-- pr-autofix:summary -->`
+
+## 手順1: PRの現状をまとめる
+
+引数が無ければ、現在のbranchのPRを対象にする。PRが見つからなければ、ユーザーに伝えて終える。
+
+次を集め、短くまとめてユーザーに伝える。
+
+- `gh pr view {PR} --json number,title,state,isDraft,mergeable,reviewDecision,headRefName,baseRefName,isCrossRepository,updatedAt`
+- `gh pr checks {PR}` の失敗と実行中のcheck
+- 印の付いたコメントのうち最新の物。最後のトリアージの表、人間に回した指摘、止まった理由である
+- 最新のトリアージより後に、PRに積まれたcommit。トリアージが古くなっているかの判断材料である
+- 未解決のレビューコメントの数
+
+印の付いたコメントが無ければ、このskillでのレビューはまだ無い事を伝える。
+
+## 手順2: 次にやる事を訊く
+
+AskUserQuestionツールで、次から選んでもらう。ユーザーが最初の依頼で、レビューや修正を明示していれば訊かない。
+
+- レビューしてトリアージを更新する。修正はしない
+- レビューし、選んだ組み合わせを自動修正する
+- 何もしない
+
+何もしない時は、ここで終える。
+
+## 手順3: 実行環境とworktreeを用意する
 
 次を全て満たさなければ、満たさない条件をユーザーに伝えて止まる。
 
 1. 自分のmodelがOpus以上のtierである。sanity-reviewも同じ条件で止まる
-2. `printenv CODEX_HOME` が `$HOME/.codex-platform` に解決され、`test -n "$CODEX_API_KEY"` が成功する。キーの値は表示しない。レビュー時だけplatform.openai.comのAPIクレジットで課金するための設定で、キーはenvchainの `nastack-code-review` から起動時に渡す。満たさなければ、次のコマンドで起動し直すようユーザーに伝える
-
-   ```sh
-   envchain nastack-code-review sh -c 'CODEX_API_KEY="$NASTACK_CODE_REVIEW_OPEN_API_KEY" CODEX_HOME="$HOME/.codex-platform" exec claude'
-   ```
-3. PRがopenで、`gh pr view {PR} --json isCrossRepository` がfalseである。forkのbranchにはpushしない
-
-引数が無ければ、現在のbranchのPRを対象にする。
+2. `sanity-review:sanity-review` と `codex-consultation:codex-consultation` をSkill toolで呼べる。呼べなければ、`claude plugin install sanity-review@shokai-agent-skills` 等でのinstallと、sessionの起動し直しを依頼する
+3. `command -v codex` が `$HOME/.claude/scripts/codex-platform/codex` を指す。指さなければ、hookが効く前に始まったsessionなので、起動し直しを依頼する
+4. PRがopenで、`isCrossRepository` がfalseである。forkのbranchにはpushしない
 
 PRのhead branchのworktreeを用意する。以降、レビューも修正もこのworktreeで行う。
 
@@ -38,16 +62,18 @@ PRのhead branchのworktreeを用意する。以降、レビューも修正も�
 - 無ければ `git worktree add .worktrees/{branch} {branch}` で作る
 - `git fetch` の後、worktreeを `origin/{branch}` にfast-forwardする。fast-forwardできない時と、commitされていない変更がある時は止まる。force pushをしないので、遅れたworktreeからのpushは失敗する
 
-各往復の手順3の前にも、同じfast-forwardを行う。
+各往復の手順5の前にも、同じfast-forwardを行う。
 
-## 手順2: 自動修正の範囲を決める
+## 手順4: 自動修正の範囲を決める
 
-AskUserQuestionツールで、次の2つを訊く。ユーザーが起動時に指定していれば訊かない。
+手順2で修正を選んだ時だけ行う。AskUserQuestionツールで、次の2つを訊く。ユーザーが指定していれば訊かない。
 
 - 自動修正する深刻度と修正難度の組み合わせ。High x 1を勧め、Medium x 1を他の候補に挙げる。修正難度2と3は選択肢に挙げるが勧めない
 - レビューと修正の往復の上限。3往復を勧める。1往復ごとにsanity-reviewとCodexへの相談でAPIクレジットを消費する
 
-## 手順3: レビューをsubagentに任せる
+修正を選ばなかった時は、往復は1回で、手順7を飛ばす。
+
+## 手順5: レビューをsubagentに任せる
 
 往復ごとに新しいsubagentを起動する。前の往復の修正を知らないsubagentにレビューさせ、修正した本人の思い込みを持ち込まない。modelはOpus以上を指定する。
 
@@ -61,7 +87,7 @@ AskUserQuestionツールで、次の2つを訊く。ユーザーが起動時に�
 
 報告書の「レビュー作業において発生した問題」を読む。codex-consultationから別の相談相手へのフォールバック、または「批判的思考の連鎖が機能していません」の警告があれば、修正に進まず止まる。APIクレジットの枯渇や通信障害で起きる。Codexを使わないレビューに切り替えない。
 
-## 手順4: トリアージする
+## 手順6: トリアージする
 
 報告書の指摘を1件ずつ取り出し、深刻度と修正難度を付ける。指摘の拾い元は次の節である。
 
@@ -74,7 +100,7 @@ AskUserQuestionツールで、次の2つを訊く。ユーザーが起動時に�
 | pull request概要欄の品質評価のNG | 拾うが、修正難度に関係なく人間に回す。実装者自身の理解を問う項目なので、AIが書き直すと検査の意味が失われる |
 | 長期視点で命名・設計を考察する | 拾わない。議論のタネであり、指摘ではない |
 
-全ての指摘に短い名前を付け、往復をまたいで同じ名前で呼ぶ。手順5で修正難度を付け直した指摘は、以降の往復でも付け直した修正難度のまま扱う。毎回新しいレビュアーが、元の修正難度を付け直す事があるためである。
+全ての指摘に短い名前を付け、往復をまたいで同じ名前で呼ぶ。手順7で修正難度を付け直した指摘は、以降の往復でも付け直した修正難度のまま扱う。毎回新しいレビュアーが、元の修正難度を付け直す事があるためである。
 
 ### 深刻度
 
@@ -94,11 +120,11 @@ AskUserQuestionツールで、次の2つを訊く。ユーザーが起動時に�
 
 ### トリアージの記録
 
-深刻度 x 修正難度の表と、各指摘の名前・深刻度・修正難度・報告書での根拠を、PRにコメントする。2往復目以降は、前の往復から消えた指摘、残った指摘、新しく出た指摘を分けて書く。
+深刻度 x 修正難度の表と、各指摘の名前・深刻度・修正難度・報告書での根拠を、印 `<!-- pr-autofix:triage -->` を付けてPRにコメントする。2往復目以降は、前の往復から消えた指摘、残った指摘、新しく出た指摘を分けて書く。
 
-## 手順5: 修正をsubagentに任せる
+## 手順7: 修正をsubagentに任せる
 
-手順2で選んだ組み合わせの指摘が無ければ、手順6に進む。
+手順4で選んだ組み合わせの指摘が無ければ、手順8に進む。
 
 あれば、新しいsubagentを1つ起動し、その往復の対象の指摘をまとめて任せる。modelはOpus以上を指定する。指示には次を含める。
 
@@ -116,21 +142,22 @@ AskUserQuestionツールで、次の2つを訊く。ユーザーが起動時に�
 
 報告が来たら、`git -C {worktree} log` とPRのcommitで、pushされた内容が報告と一致する事を確かめる。
 
-## 手順6: 続けるか止まるかを決める
+## 手順8: 続けるか止まるかを決める
 
-次のいずれかに当たれば止まり、手順7に進む。当たらなければ手順3に戻る。
+次のいずれかに当たれば止まり、手順9に進む。当たらなければ手順5に戻る。
 
-- 手順2で選んだ組み合わせの指摘が、最新の報告書に無い
+- 修正を選ばなかった
+- 手順4で選んだ組み合わせの指摘が、最新の報告書に無い
 - 往復の上限に達した
 - 同じ名前の指摘が、修正した後の報告書にまた現れた。直し方が噛み合っていないので、人間が見る
 - subagentがCodexの停止で止まった
 
-## 手順7: 結果を伝える
+## 手順9: 結果を伝える
 
-PRに、最後の状態をコメントする。
+印 `<!-- pr-autofix:summary -->` を付けて、PRに最後の状態をコメントする。
 
 - 自動修正した指摘と、そのcommit
-- 人間に回す指摘。手順2で選ばなかった組み合わせ、修正難度を付け直した指摘、再発した指摘、概要欄のNGである
+- 人間に回す指摘。手順4で選ばなかった組み合わせ、修正難度を付け直した指摘、再発した指摘、概要欄のNGである
 - 止まった理由
 
 ユーザーには、同じ内容を短く伝える。人間に回す指摘は省かない。作ったworktreeは消さずに場所を伝える。消すのはPRがmergeされた後で、ユーザーが行う。
