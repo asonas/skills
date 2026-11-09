@@ -14,7 +14,7 @@ dependencies:
       targets: [claude, codex]
 ```
 
-Config owns the enabled set and runtime targets. Editing `~/.apm/apm.yml` deploys through the APM watcher, and mise history records the revision. Publish reviewed source changes before updating dependencies and deploying through APM. Do not edit deployed copies or create parallel local skill links. Run the config bootstrap only when installation is explicitly authorized; do not run it for routine source edits or tests.
+Config owns the enabled set and runtime targets. Editing `~/.apm/apm.yml` deploys through the APM watcher, and mise history records the revision. Publish reviewed source changes before updating dependencies and deploying through APM. Do not edit deployed copies or create parallel local skill links. Run `mise bootstrap` only when installation is explicitly authorized; do not run it for routine source edits or tests.
 
 ## Private runtime data
 
