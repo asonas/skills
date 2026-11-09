@@ -4,7 +4,7 @@ Self-authored agent skills distributed through APM. Each skill lives in its own 
 
 ## Source and distribution
 
-Edit skill sources here. Register each enabled skill in [asonas/dotfiles](https://github.com/asonas/dotfiles)'s `apm.yml`, for example:
+Edit skill sources here. Register each enabled skill in `~/.apm/apm.yml`, whose source is `home@default/.apm/apm.yml` in [asonas/config](https://github.com/asonas/config), for example:
 
 ```yaml
 dependencies:
@@ -14,7 +14,7 @@ dependencies:
       targets: [claude, codex]
 ```
 
-Dotfiles owns the enabled set and runtime targets. Publish reviewed source changes before updating dependencies and deploying through APM. Do not edit deployed copies or create parallel local skill links. Run the dotfiles installer only when installation is explicitly authorized and from its canonical main worktree; do not run it for routine source edits or tests.
+Config owns the enabled set and runtime targets. Editing `~/.apm/apm.yml` deploys through the APM watcher, and mise history records the revision. Publish reviewed source changes before updating dependencies and deploying through APM. Do not edit deployed copies or create parallel local skill links. Run the config bootstrap only when installation is explicitly authorized; do not run it for routine source edits or tests.
 
 ## Private runtime data
 
