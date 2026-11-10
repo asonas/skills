@@ -102,6 +102,13 @@ asks_trust() {
     hc read --lines 0 "$1" 2>/dev/null | grep -q "trust this folder"
 }
 
+result_status() {
+    local status
+    status="$(awk '/^status:/ { sub(/^status:[[:space:]]*/, ""); sub(/[[:space:]]*$/, ""); print; exit }' "$1" 2>/dev/null)" || status=unknown
+    [[ "$status" =~ ^[a-z-]+$ ]] || status=unknown
+    printf '%s\n' "$status"
+}
+
 cmd_ls() {
     local d name repo
     [ -d "$STATE_DIR" ] || { echo "no tasks"; return; }
@@ -161,8 +168,7 @@ cmd_notify() {
         echo "muse-task: warning: unknown task: $name; not notified" >&2; return 0;
     }
     result="$dir/result.md"
-    status="$(awk '/^status:/ { sub(/^status:[[:space:]]*/, ""); sub(/[[:space:]]*$/, ""); print; exit }' "$result" 2>/dev/null)" || status=unknown
-    [[ "$status" =~ ^[a-z-]+$ ]] || status=unknown
+    status="$(result_status "$result")"
     if ! targets="$(hc ls --json --label "$label" 2>/dev/null)"; then
         echo "muse-task: warning: hc ls failed for label $label; not notified" >&2
         return 0
