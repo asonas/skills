@@ -15,17 +15,19 @@ CODER_EFFORT="${MUSE_TASK_CODER_EFFORT:-low}"
 usage() {
     cat <<'USAGE'
 Usage:
-  muse-task start <repo> <task>   Start a lead in the repository
-  muse-task ls                    List tasks with lead and result statuses
-  muse-task wait <name> [secs]    Wait until the lead stops working (default 600)
-  muse-task result <name>         Print the result file, or the screen if none yet
-  muse-task notify <name>         Tell the reviewer session the lead finished
-  muse-task say <name> <text>     Send an answer or instruction to the lead
-  muse-task trust <name>          Answer "Yes" to Claude's folder-trust dialog (after asonas approves)
-  muse-task close <name>          End the lead and its coders; the result file stays
+  muse-task start <repo> <task>       Start a lead in the repository
+  muse-task run <repo> <task> [secs]  Start a lead and wait; print the result file if it stopped
+  muse-task ls                        List tasks with lead and result statuses
+  muse-task wait <name> [secs]        Wait until the lead stops working (default 600)
+  muse-task result <name>             Print the result file, or the screen if none yet
+  muse-task notify <name>             Tell the reviewer session the lead finished
+  muse-task say <name> <text>         Send an answer or instruction to the lead
+  muse-task trust <name>              Answer "Yes" to Claude's folder-trust dialog (after asonas approves)
+  muse-task close <name>              End the lead and its coders; the result file stays
 
 <repo> is a path, or a name or owner/name known to ghq.
 Reviewer: run once in the reviewing session: hc label <terminal> muse-task.reviewer=1
+Callers that open a new terminal per call (like Muse) should use run instead of separate start and wait.
 USAGE
 }
 
@@ -145,6 +147,19 @@ cmd_wait() {
     fi
 }
 
+cmd_run() {
+    [ $# -eq 2 ] || [ $# -eq 3 ] || { usage >&2; exit 2; }
+    local out name w
+    out="$(cmd_start "$1" "$2")" || exit $?
+    printf '%s\n' "$out"
+    name="$(printf '%s\n' "$out" | sed -n 's/^name: //p')"
+    w="$(cmd_wait "$name" ${3:+"$3"})"
+    printf '%s\n' "$w"
+    if [[ "$w" == stopped:* ]] && [ -f "$STATE_DIR/$name/result.md" ]; then
+        cat "$STATE_DIR/$name/result.md"
+    fi
+}
+
 cmd_result() {
     [ $# -eq 1 ] || { usage >&2; exit 2; }
     local d; d="$(task_dir "$1")"
@@ -223,6 +238,7 @@ cmd_close() {
 
 case "${1:-}" in
     start) shift; cmd_start "$@" ;;
+    run) shift; cmd_run "$@" ;;
     ls) shift; cmd_ls ;;
     wait) shift; cmd_wait "$@" ;;
     result) shift; cmd_result "$@" ;;

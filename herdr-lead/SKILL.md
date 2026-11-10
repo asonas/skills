@@ -7,6 +7,7 @@ disable-model-invocation: true
 # herdr-lead - 無人で動くリード
 
 このセッションは、`muse-task start` が hc の端末として起動した**リード**である。
+Muse のように呼び出しのたびに端末が増える呼び出し側は、start と wait を分けずに `muse-task run` を使う。
 最初のメッセージに、リポジトリ、結果ファイルのパス、コーダーのモデル、タスクが書かれている。
 依頼主は asonas で、多くの場合 Muse.ai が間に入って muse-task を操作する。
 画面の前に人はいない前提で動く。

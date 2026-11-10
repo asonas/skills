@@ -15,9 +15,12 @@ printf '%s\0' "$@" >> "$FAKE_HC_LOG"; printf '\n' >> "$FAKE_HC_LOG"
 case "$1" in
     run) [ -z "${FAKE_HC_RUN_FAIL:-}" ] || { echo '{"error":{}}'; exit 1; }
          echo '{"address":"t9","name":"x"}' ;;
-    get) if [ -n "${FAKE_HC_STARTING:-}" ]; then echo '{"state":"live","status":null}'
+    get) if [ "${FAKE_HC_RESULT_BODY+x}" = x ]; then
+             printf '%s\n' "$FAKE_HC_RESULT_BODY" > "$MUSE_TASK_STATE/$2/result.md"
+         fi
+         if [ -n "${FAKE_HC_STARTING:-}" ]; then echo '{"state":"live","status":null}'
          else echo '{"state":"live","status":{"state":"idle"}}'; fi ;;
-    wait) echo '{"reason":"timeout"}' ;;
+    wait) echo "{\"reason\":\"${FAKE_HC_WAIT_REASON:-timeout}\"}" ;;
     read) echo "${FAKE_HC_SCREEN:-screen line}" ;;
     ls) [ -z "${FAKE_HC_LS_FAIL:-}" ] || exit 1
         empty='{"terminals":[]}'; printf '%s\n' "${FAKE_HC_LS:-$empty}" ;;
@@ -90,6 +93,35 @@ long="$("$script" start "$tmp/repos/github.com/acme/jellyfin-viewer.example" "x"
 before="$(ls "$tmp/state" | wc -l)"
 if FAKE_HC_RUN_FAIL=1 "$script" start widget "x" 2> /dev/null; then fail "failed launch reported success"; fi
 [ "$(ls "$tmp/state" | wc -l)" = "$before" ] || fail "failed launch left a task behind"
+
+run_body='RUN-RESULT-BODY'
+out="$(FAKE_HC_WAIT_REASON=done FAKE_HC_RESULT_BODY="$run_body" "$script" run widget "Run done")" \
+    || fail "run done failed"
+name_line="$(printf '%s\n' "$out" | grep -n '^name: lead-widget-' | cut -d: -f1)"
+stop_line="$(printf '%s\n' "$out" | grep -n '^stopped:' | cut -d: -f1)"
+body_line="$(printf '%s\n' "$out" | grep -n "^$run_body$" | cut -d: -f1)"
+[ -n "$name_line" ] && [ -n "$stop_line" ] && [ -n "$body_line" ] || fail "run done output missing"
+[ "$name_line" -lt "$stop_line" ] && [ "$stop_line" -lt "$body_line" ] || fail "run done output order"
+
+out="$(FAKE_HC_STARTING=1 FAKE_HC_SCREEN="$dialog" FAKE_HC_RESULT_BODY="$run_body" \
+    "$script" run widget "Run blocked" 1)" || fail "run blocked failed"
+printf '%s\n' "$out" | grep -q '^name: lead-widget-' || fail "run blocked name missing"
+printf '%s\n' "$out" | grep -q '^blocked:' || fail "run blocked status missing"
+if printf '%s\n' "$out" | grep -q "$run_body"; then fail "run blocked printed result"; fi
+
+before="$(ls "$tmp/state" | wc -l)"
+log_before="$(wc -l < "$tmp/hc.log")"
+if FAKE_HC_RUN_FAIL=1 "$script" run widget "Run failure" 2> /dev/null; then
+    fail "failed run reported success"
+fi
+[ "$(ls "$tmp/state" | wc -l)" = "$before" ] || fail "failed run left a task behind"
+if tail -n "+$((log_before + 1))" "$tmp/hc.log" | tr '\0' '\t' | grep -Eq '^(wait|get)[[:space:]]'; then
+    fail "failed run called wait or get"
+fi
+
+out="$(FAKE_HC_RESULT_BODY="$run_body" "$script" run widget "Run timeout")" || fail "run timeout failed"
+printf '%s\n' "$out" | grep -q '^still working' || fail "run timeout status missing"
+if printf '%s\n' "$out" | grep -q "$run_body"; then fail "run timeout printed result"; fi
 
 # Freeze only the name timestamp; metadata dates still use the real date.
 cat > "$tmp/bin/date" <<'EOF'
