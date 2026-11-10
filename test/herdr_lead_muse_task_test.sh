@@ -52,7 +52,18 @@ done
 "$script" result "$name" | grep -q "screen line" || fail "result should fall back to the screen"
 echo "status: done" > "$tmp/state/$name/result.md"
 "$script" result "$name" | grep -qx "status: done" || fail "result file not printed"
-"$script" ls | grep -q "^$name	idle	result	" || fail "ls after result"
+"$script" ls | grep -q "^$name	idle	done	" || fail "ls after result"
+for status in done needs-decision blocked; do
+    printf 'status: %s\n' "$status" > "$tmp/state/$name/result.md"
+    [ "$("$script" ls | cut -f3)" = "$status" ] || fail "ls status: $status"
+done
+for contents in 'no status line' 'status: done BODY' 'status:'; do
+    printf '%s\n' "$contents" > "$tmp/state/$name/result.md"
+    [ "$("$script" ls | cut -f3)" = unknown ] || fail "ls invalid status: $contents"
+done
+command rm "$tmp/state/$name/result.md"
+[ "$("$script" ls | cut -f3)" = no-result ] || fail "ls missing result"
+echo "status: done" > "$tmp/state/$name/result.md"
 "$script" wait "$name" | grep -q "still working" || fail "timeout not reported"
 "$script" say "$name" "Use option B" | grep -q "sent to $name" || fail "say"
 tail -1 "$tmp/hc.log" | tr '\0' ' ' | grep -q "send $name Use option B" || fail "say did not reach hc send"

@@ -16,7 +16,7 @@ usage() {
     cat <<'USAGE'
 Usage:
   muse-task start <repo> <task>   Start a lead in the repository
-  muse-task ls                    List tasks and their status
+  muse-task ls                    List tasks with lead and result statuses
   muse-task wait <name> [secs]    Wait until the lead stops working (default 600)
   muse-task result <name>         Print the result file, or the screen if none yet
   muse-task notify <name>         Tell the reviewer session the lead finished
@@ -117,7 +117,7 @@ cmd_ls() {
         name="$(basename "$d")"
         repo="$(sed -n 's/^repo=//p' "$d/meta")"
         printf '%s\t%s\t%s\t%s\n' "$name" "$(status_of "$name")" \
-            "$([ -f "$d/result.md" ] && echo result || echo no-result)" "$repo"
+            "$([ -f "$d/result.md" ] && result_status "$d/result.md" || echo no-result)" "$repo"
     done
 }
 
