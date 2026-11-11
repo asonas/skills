@@ -91,6 +91,18 @@ mise exec -- bundle exec bin/activities-snapshot --source bluesky --source scrap
 
 失敗時は警告のみで `/today` 全体は止めない。`activities-snapshot` は collect + render を1コマンドで実行する薄いラッパで、各スキル (today / wrapup / tempest909-draft) から共通利用される。
 
+### Kikimimi の打ち合わせ記録
+
+`interview-recorder`（Kikimimi）は、通話を録音し、書き起こし・要約をMarkdownへ書き出すアプリ。ユーザーが残したい記録を保存する `$VAULT_DIR/Kikimimi/` を、打ち合わせ・面接の記録の参照元とする。
+
+- `rg --files "$VAULT_DIR/Kikimimi" -g '*.md'` で子ディレクトリも含めて列挙し、frontmatterを確認する。ディレクトリなし・該当なしなら続行する。読めない場合は取得できなかった旨を報告し、「打ち合わせなし」とは断定しない。
+- 現行の書き出しには `type: interview-log`、`source: kikimimi`、`session`、`company`、任意の `title`、`date`、`started`、`exported` がある。対象日は `started` のオフセット付き日時をAsia/Tokyoへ変換して決め、なければ `date` を使う。`exported`・ファイル更新日・カレンダーの予定日では判断しない。旧形式や手書き記録は本文の明示された開催日を補助にし、日付不明・矛盾は保留して報告する。ファイル名だけで確定しない。
+- 実在するノートへ `[[Kikimimi/<実際の拡張子なし相対パス>|<打ち合わせ名>]]` を張る。表示名は `company` と `title`、なければ本文の見出しを使う。時刻不明なら時刻を省略する。
+- `session` が同じ記録は同一会議として扱い、なければノートの相対パスで重複を防ぐ。既存dailyのリンク・MTG項目も照合し、記録済みの会議には項目を増やさずリンクを補う。同一sessionの複数ノートは内容を確認して代表を選び、特定できなければ保留する。
+- 掲載は会議名と記録へのリンクを基本とし、書き起こし全文をdailyへ転載しない。AI要約を本人の発言や確認済みの合意として扱わない。録音原本の探索、未保存セッションの自動エクスポート、Kikimimi内のノートの移動・改変は行わない。Kikimimiはユーザー指定の保存先として維持する。
+
+前日（Step 2の対象日が複数なら日別）と今日を確認する。前日分はStep 4の対応する振り返り欄へリンク付きで含め、今日分は今日の `## ログ` に `- HH:MM MTG: [[Kikimimi/...|会議名]]` として掲載する。前日分を今日の実績に混ぜない。今日のdailyが既に存在しても全文を上書きせず、欠けている会議リンクだけを対応する欄へ補う。Step 2・Step 5の「Wikiリンクは使わない」はユーザーへの提示文に適用し、保存するdailyの会議リンクは保持する。後日の書き出しは、開催日を対象にしたwrapupで回収できる。
+
 ### Step 4: Create Today's Daily Note in Obsidian
 
 **IMPORTANT: Always create today's daily note.**
