@@ -18,7 +18,7 @@ codex plugin marketplace add asonas/skills
 codex plugin add asonas@asonas-skills
 ```
 
-Skills are invoked with the plugin prefix in Claude Code, such as `/asonas:today`.
+Skills are invoked with the plugin prefix: `$asonas:today` or `$asonas:wrapup` in Codex, and `/asonas:today` or `/asonas:wrapup` in Claude Code.
 
 ## Source and distribution
 

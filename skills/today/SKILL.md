@@ -4,6 +4,8 @@ description: Use when starting the workday. Reviews the prior day's work, gather
 disable-model-invocation: true
 ---
 
+同じ `asonas` プラグインの依存スキルは、Codexでは `$asonas:<name>`、Claude Codeでは `/asonas:<name>` として参照し、実際のスキル一覧にあるパスから `SKILL.md` を読む。以下の `/obsidian-vault`、`/save-conversation`、`/raindrop-sync`、`/wiki-update` と `Skill(...)` はそのスキルと引数を表す。スキル呼び出し用ツールがない環境では本文を読んで手順を実行する。`<skill-dir>` は読み込んだスキル自身のディレクトリとし、インストール先やバージョンを固定しない。
+
 Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
 
 
@@ -32,7 +34,7 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
 
 要約を始める前に `/save-conversation pending` の手順でCodexとClaude Codeの未取り込み会話を回収する。初回は同スキルの対象確認・継続回収の承認を先に行い、未承認なら保存を保留する。回収に失敗してもtoday全体は止めず、取得できた範囲を伝える。保存済みの `conversations/` から前日の発言時刻に該当するやり取りを読み、作業だけでなく相談・問い・未解決の話題も引き継ぎ候補にする。日付はファイル名ではなく各発言のJST時刻で判断する。会話原文の保存と、日報に採用する要約は分ける。
 
-前日（または直近営業日）の引き継ぎ材料を subagent で組み立てる。subagent は `model: "sonnet"`、`subagent_type: "general-purpose"` で起動し、調査結果を構造化された短いテキスト（200〜400字目安）で返す。
+前日（または直近営業日）の引き継ぎ材料を subagent で組み立てる。Claude Codeでは `model: "sonnet"`、`subagent_type: "general-purpose"` を使い、Codexでは利用可能なsubagentを使う。subagentが利用できない環境ではメインスレッドで同じ調査を行う。調査結果は構造化された短いテキスト（200〜400字目安）にまとめる。
 
 #### 2a. prior-day-summary subagent
 
@@ -43,12 +45,12 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
 あなたは asonas の前営業日の作業内容を整理する任務を持つ。
 以下を順に行い、最終的に Markdown のサマリーを返してほしい。
 
-1. `~/.claude/scripts/find-recent-daily-notes.sh` を Bash 実行し、対象日付のリストを取得する
+1. `mise exec -- ruby <skill-dir>/scripts/find-recent-daily-notes.rb YYYY-MM-DD` を実行し、対象日付のリストを取得する（引数はStep 1のJST日付）
    - 月曜実行時は金/土/日の3日分が返る可能性あり、全部処理する
    - 7日遡って何もなければ「対象日なし」と返す
 2. 各日付について以下を実行:
    a. Read: $VAULT_DIR/daily/YYYY-MM-DD.md
-   b. cman:cm-search を keyword="YYYY-MM-DD"、exclude_subagents=true で実行し、その日のClaude Codeセッション履歴を取得
+   b. cman:cm-search が利用可能なら keyword="YYYY-MM-DD"、exclude_subagents=true で実行し、その日のClaude Codeセッション履歴を取得
       （exclude_subagents=true は必須。agent-* セッションを除外すると全文検索の対象が減り所要時間がほぼ半減する。かつ「昨日やったこと」の材料として subagent の内部ログは不要なので結果品質も上がる）
    c. メインスレッドで確認した conversations/ の対象日発言も材料に含める。cmanが使えない場合もCodex会話とdailyから続ける。assistantの提案をユーザーの意見や合意に読み替えない。成果の断定には元JSONLのツール結果など直接の証拠を確認する。
 3. 抽出する情報:
@@ -210,14 +212,14 @@ lint は検出結果を `wiki/log.md` に記録するのみで自動修正はし
 
 Wiki の処理が終わったら、Alfred の qmd 検索（`ws`/`wsq`、`/Users/asonas/workspace/qmd-alfred/`）が最新の vault を引けるよう、qmd のインデックスを更新する。`command -v qmd` が無い／collection `asonas` 未登録ならスキップしてよい。
 
-**バックグラウンド実行する（同期で待たない）。** qmd の再インデックスは検索インデックスの鮮度を保つだけの純保守で、`/today` の後段が結果を必要としない。vault の増大に伴い scan+embed で 10 秒以上かかることがあるため、Bash の `run_in_background` で detach し、`/today` はすぐ次へ進む。失敗してもワークフロー全体は止めない。
+**実行環境のバックグラウンド機能を使う。** qmd の結果を後段は必要としない。Claude CodeではBashの `run_in_background`、Codexでは利用可能な永続バックグラウンドジョブ機能を使う。完了まで保持できるジョブ機能がなければ同期で実行し、結果を確認する。失敗してもワークフロー全体は止めない。
 
 ```bash
-# Bash tool の run_in_background=true で起動する（& を付けず、ツール側のバックグラウンド機能を使う）
+# 永続バックグラウンドジョブ機能が使える場合は、その機能で起動する
 qmd update && qmd embed
 ```
 
-起動したら「qmd 再インデックスをバックグラウンドで開始」とだけ報告し、完了は待たない。
+バックグラウンドジョブとして起動できた場合は「qmd 再インデックスをバックグラウンドで開始」と報告し、完了は待たない。同期実行の場合は成功・失敗を報告する。
 
 ## Output Format
 

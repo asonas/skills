@@ -5,6 +5,8 @@ argument-hint: "[date]"
 disable-model-invocation: true
 ---
 
+同じ `asonas` プラグインの依存スキルは、Codexでは `$asonas:<name>`、Claude Codeでは `/asonas:<name>` として参照し、実際のスキル一覧にあるパスから `SKILL.md` を読む。以下の `/obsidian-vault`、`/save-conversation`、`/raindrop-sync`、`/wiki-update` と `Skill(...)` はそのスキルと引数を表す。スキル呼び出し用ツールがない環境では本文を読んで手順を実行する。`<skill-dir>` は読み込んだスキル自身のディレクトリとし、インストール先やバージョンを固定しない。
+
 Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以下の `$VAULT_DIR` は取得した絶対パスに展開し、解決に失敗した場合は停止する。
 
 
