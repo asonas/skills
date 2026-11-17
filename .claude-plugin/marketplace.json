@@ -1,0 +1,16 @@
+{
+  "name": "asonas-skills",
+  "owner": {
+    "name": "asonas"
+  },
+  "metadata": {
+    "description": "Self-authored agent skills by asonas"
+  },
+  "plugins": [
+    {
+      "name": "asonas",
+      "description": "Self-authored skills for Obsidian, herdr, daily routines, pull requests and commits",
+      "source": "./"
+    }
+  ]
+}

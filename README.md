@@ -1,20 +1,28 @@
 # asonas/skills
 
-Self-authored agent skills distributed through APM. Each skill lives in its own directory with `SKILL.md` and any required references or scripts.
+Self-authored agent skills, published as the `asonas` plugin for Claude Code and Codex. Each skill lives in `skills/<name>/` with `SKILL.md` and any required references or scripts.
+
+## Install
+
+Claude Code:
+
+```sh
+claude plugin marketplace add asonas/skills
+claude plugin install asonas@asonas-skills
+```
+
+Codex:
+
+```sh
+codex plugin marketplace add asonas/skills
+codex plugin add asonas@asonas-skills
+```
+
+Skills are invoked with the plugin prefix in Claude Code, such as `/asonas:today`.
 
 ## Source and distribution
 
-Edit skill sources here. Register each enabled skill in `~/.apm/apm.yml`, whose source is `home@default/.apm/apm.yml` in [asonas/config](https://github.com/asonas/config), for example:
-
-```yaml
-dependencies:
-  apm:
-    - git: asonas/skills
-      path: obsidian-vault
-      targets: [claude, codex]
-```
-
-Config owns the enabled set and runtime targets. Editing `~/.apm/apm.yml` deploys through the APM watcher, and mise history records the revision. Publish reviewed source changes before updating dependencies and deploying through APM. Do not edit deployed copies or create parallel local skill links. Run `mise bootstrap` only when installation is explicitly authorized; do not run it for routine source edits or tests.
+Edit skill sources here and publish reviewed changes to `main`; installed plugins pick them up on the next marketplace update. Do not edit installed copies in the plugin caches. Bundled scripts are referenced from the skill directory (`<skill-dir>`), never from a fixed install path, because the cache location differs between agents.
 
 ## Private runtime data
 
@@ -29,4 +37,4 @@ bash test/herdr_lead_muse_task_test.sh
 mise exec -- ruby test/vault_state_test.rb
 ```
 
-Tests use synthetic fixtures and temporary directories, not the personal Vault. Validate skill metadata and inspect references before publishing. Generalized Vault-path resolution and broader workflow redesign are separate work from repository migration.
+Tests use synthetic fixtures and temporary directories, not the personal Vault. Validate skill metadata and inspect references before publishing, and check the manifests with `claude plugin validate .`.

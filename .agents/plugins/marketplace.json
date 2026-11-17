@@ -1,0 +1,20 @@
+{
+  "name": "asonas-skills",
+  "interface": {
+    "displayName": "asonas skills"
+  },
+  "plugins": [
+    {
+      "name": "asonas",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

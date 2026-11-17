@@ -1,0 +1,18 @@
+{
+  "name": "asonas",
+  "version": "1.0.0",
+  "description": "Self-authored skills for Obsidian, herdr, daily routines, pull requests and commits",
+  "author": {
+    "name": "asonas",
+    "url": "https://github.com/asonas"
+  },
+  "homepage": "https://github.com/asonas/skills",
+  "repository": "https://github.com/asonas/skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "asonas",
+    "shortDescription": "Self-authored skills by asonas",
+    "developerName": "asonas",
+    "category": "Productivity"
+  }
+}
