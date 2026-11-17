@@ -5,6 +5,8 @@ description: Obsidian のノートを読む・保存する・整理するとき�
 
 # Obsidian
 
+`<skill-dir>` は、この `SKILL.md` があるディレクトリを指す。スキルを読み込んだときに示される基準ディレクトリに置き換えて実行する。
+
 ## 役割
 
 Vaultを扱う各スキルが共有する、保存・原文保護・整理のルール。日次記録の作成・追記は `/today`・`/wrapup`、Wikiの更新は `/wiki-update`、出典付き検索は `/vault-rag` が担当する。会話の抽出・保存や振り返りの具体的な手順、qmdの更新処理はここでは定めない。
@@ -20,7 +22,7 @@ Vaultを扱う各スキルが共有する、保存・原文保護・整理のル
 Vaultの読み書きに先立ち、同梱の共通処理で登録先を取得する。個人ノートは `asonas`、公開ブログ用は `ason.as` を指定する。
 
 ```sh
-VAULT_DIR=$(mise exec -- ruby ~/.agents/skills/obsidian-vault/scripts/resolve-vault.rb asonas) || exit 1
+VAULT_DIR=$(mise exec -- ruby <skill-dir>/scripts/resolve-vault.rb asonas) || exit 1
 ```
 
 - 成功時の標準出力は検証済みの絶対パス1行。以下や他のスキルの `$VAULT_DIR` は、その値に展開してRead/Editへ渡す。シェルの例は変数を設定した同じ実行内で使う。
@@ -35,7 +37,7 @@ VAULT_DIR=$(mise exec -- ruby ~/.agents/skills/obsidian-vault/scripts/resolve-va
 特定のノートから参照するMarkdown以外のファイルをVaultに配置するときは、Custom Attachment Locationの実設定を解決する同梱スクリプトを使う。テンプレート素材や独立した配布ファイルなど、ノートの添付ファイルでないものには適用しない。
 
 ```sh
-mise exec -- ruby ~/.agents/skills/obsidian-vault/scripts/place-attachment.rb asonas <vault-relative-note.md> <source-file>
+mise exec -- ruby <skill-dir>/scripts/place-attachment.rb asonas <vault-relative-note.md> <source-file>
 ```
 
 - スクリプトは元ファイルを保持したままコピーし、配置先のVault相対パスを1行で返す。そのパスを使って対象ノートから参照する

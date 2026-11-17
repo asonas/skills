@@ -10,6 +10,8 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
 
 # /wiki-update - Obsidian Wiki Maintenance
 
+`<skill-dir>` は、この `SKILL.md` があるディレクトリを指す。スキルを読み込んだときに示される基準ディレクトリに置き換えて実行する。
+
 karpathy の "LLM Wiki" 方針に従い、Obsidian asonas vault の `wiki/` 配下を LLM が育てる仕組みです。3 つのモードを持ちます。
 
 - **ingest**: 指定したソースノートを読み、抽出した固有名詞・概念に対応する wiki ページを 1 パスでまとめて作成・更新します（karpathy 流の "10〜15 ページを一度に触る" 想定）。
@@ -119,7 +121,7 @@ updated: 2026-05-20
    **読んだだけで済ませず、必ず機械的な突き合わせも行う。** 本文を一度読むだけの抽出は取りこぼす（実例: `Colima` は 2026-06-15 と 06-17 の daily に現れて 2ソース・ルールを満たしていたのに、ページ化も deferred 記録もされなかった）。
 
    ```bash
-   H=~/.claude/skills/wiki-update/health
+   H=<skill-dir>/health
    ruby $H/mentions.rb <source>...              # 既存ページへの言及を洗い出す
    ruby $H/mentions.rb --candidates <source>... # 既存でも deferred 済みでもない新規候補
    ```
@@ -157,7 +159,7 @@ updated: 2026-05-20
    ページを書き終えたら、その場で検証する:
 
    ```bash
-   ruby ~/.claude/skills/wiki-update/health/verify-sources.rb <ページ名>...
+   ruby <skill-dir>/health/verify-sources.rb <ページ名>...
    ```
 8. **横断更新**: karpathy 流に「1 回の ingest で 10〜15 ページを更新する」想定で、抽出した全エンティティを一度のセッションで処理する。1 ページずつユーザに確認しない。
 
@@ -210,7 +212,7 @@ lint は「検出して終わり」にせず、機械的に直せる問題はそ
    - `type` 欠落 → 本文から判断して補完する
    - `updated` 欠落 → ファイルの mtime の日付で補完する
    - `sources` が空 → vault を grep してそのページ名に言及している daily / notes / projects を探し、見つかれば `sources` に追記する。見つからなければ報告に残す
-   - **`sources` が空でないページは中身も検証する**。`ruby ~/.claude/skills/wiki-update/health/verify-sources.rb --quiet` を実行し、出典に挙げたファイルがそのページの主題に触れているかを確認する。`sources` が埋まっていることと、その出典が正しいことは別の話であり、`wiki-health.rb` は前者しか見ていない
+   - **`sources` が空でないページは中身も検証する**。`ruby <skill-dir>/health/verify-sources.rb --quiet` を実行し、出典に挙げたファイルがそのページの主題に触れているかを確認する。`sources` が埋まっていることと、その出典が正しいことは別の話であり、`wiki-health.rb` は前者しか見ていない
    - 検出された出典は「誤り確定」ではなく「要確認」。表記が違うだけの正当なケース（`Datadog` に対する `datadoghq` など）は aliases に追記すれば解消する。本当に主題に触れていない出典は差し替えるか、その記述ごと削除する
    - 修復したページは lint エントリの `fixed:` 行に列挙する
 4. **deferred 台帳の棚卸し**: `wiki/deferred.md` を読み、各語の sources 数を数え直す。
@@ -236,7 +238,7 @@ lint は「検出して終わり」にせず、機械的に直せる問題はそ
    - deferred: ページ化待ち 45 → 42、様子見 36 → 34、見送りへ 3 件
    ```
 
-6. **健康診断の記録**: `ruby ~/.claude/skills/wiki-update/health/wiki-health.rb` を実行し、結果を lint エントリの `health:` 行に 1 行で残す。
+6. **健康診断の記録**: `ruby <skill-dir>/health/wiki-health.rb` を実行し、結果を lint エントリの `health:` 行に 1 行で残す。
 
    ```
    - health: 169ページ 1ingestあたり3.47 stale(0-7d)=4 deferred待ち=45 過剰分割=26

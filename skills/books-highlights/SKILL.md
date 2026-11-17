@@ -9,6 +9,8 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
 
 # /books-highlights - Apple Books Highlights -> Obsidian
 
+`<skill-dir>` は、この `SKILL.md` があるディレクトリを指す。スキルを読み込んだときに示される基準ディレクトリに置き換えて実行する。
+
 macOS の Books.app に付けたハイライトとメモを、ローカル SQLite から読み出し、epub 原本（OPF / 目次）のメタデータと章構成に紐づけて `$VAULT_DIR/books/` に Markdown として書き出すスキルです。raindrop-sync と同じ「依存ゼロ Ruby スクリプト」構成で、`bookmarks/` と並ぶ Raw Sources 層を構成します。
 
 ## 前提
@@ -23,7 +25,7 @@ macOS の Books.app に付けたハイライトとメモを、ローカル SQLit
 ## 起動方法
 
 ```bash
-~/.agents/skills/books-highlights/books-highlights.rb --book "シンプリシティ"
+<skill-dir>/books-highlights.rb --book "シンプリシティ"
 ```
 
 ### オプション

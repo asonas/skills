@@ -10,6 +10,8 @@ Vaultを扱う前に `/obsidian-vault` の保存先解決を実行する。以�
 
 # /raindrop-sync - Raindrop -> Obsidian Bookmarks Sync
 
+`<skill-dir>` は、この `SKILL.md` があるディレクトリを指す。スキルを読み込んだときに示される基準ディレクトリに置き換えて実行する。
+
 Raindrop.io API から取得したブックマークを `$VAULT_DIR/bookmarks/` に 1 ファイル 1 ブックマークの markdown として書き出すスキルです。各ファイルは記事タイトルに由来する読みやすい名前を持ち、frontmatter にメタデータ、本文に defuddle で抽出した記事本文を含みます。
 
 karpathy の "LLM Wiki" 3 層モデルで言う **Raw Sources 層の拡張**です。daily / notes / essays に並ぶ第 4 のソースとして `/wiki-update ingest` から参照されます。
@@ -27,7 +29,7 @@ karpathy の "LLM Wiki" 3 層モデルで言う **Raw Sources 層の拡張**で�
 スキルから呼ぶ場合は内部の Ruby スクリプトを Bash で起動します:
 
 ```
-~/.agents/skills/raindrop-sync/raindrop-sync.rb [options]
+<skill-dir>/raindrop-sync.rb [options]
 ```
 
 ### オプション
