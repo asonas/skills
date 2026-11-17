@@ -5,7 +5,7 @@ require 'json'
 require 'open3'
 
 class VaultResolutionTest < Minitest::Test
-  ROOT = File.expand_path(ENV.fetch('SKILLS_ROOT', File.expand_path('..', __dir__)))
+  ROOT = File.expand_path(ENV.fetch('SKILLS_ROOT', File.expand_path('../skills', __dir__)))
   SCRIPT = File.join(ROOT, 'obsidian-vault/scripts/resolve-vault.rb')
 
   def setup

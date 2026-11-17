@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require_relative '../jev-qmd/scripts/compare'
+require_relative '../skills/jev-qmd/scripts/compare'
 
 class CompareTest < Minitest::Test
   def setup

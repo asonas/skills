@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require_relative '../jev-qmd/scripts/rerank'
+require_relative '../skills/jev-qmd/scripts/rerank'
 
 class RerankTest < Minitest::Test
   def with_child_process(replacement)
@@ -21,7 +21,7 @@ class RerankTest < Minitest::Test
   def test_preview_and_rejection_work_without_credentials_at_process_boundary
     Tempfile.create(['rerank-test-', '.json']) do |f|
       f.write(JSON.generate(@snapshot)); f.flush
-      command = [RbConfig.ruby, File.expand_path('../jev-qmd/scripts/rerank.rb', __dir__)]
+      command = [RbConfig.ruby, File.expand_path('../skills/jev-qmd/scripts/rerank.rb', __dir__)]
       out, err, status = Open3.capture3({ 'TYPESAFE_API_KEY' => nil }, *command, 'preview', '--input', f.path)
       assert status.success?, err
       review = JSON.parse(out)

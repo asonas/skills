@@ -8,7 +8,7 @@ require 'open3'
 require 'rbconfig'
 
 class ClaudeConversationImportTest < Minitest::Test
-  SKILLS_ROOT = ENV.fetch('SKILLS_ROOT', File.expand_path('..', __dir__))
+  SKILLS_ROOT = ENV.fetch('SKILLS_ROOT', File.expand_path('../skills', __dir__))
   SCRIPT = File.join(SKILLS_ROOT, 'save-conversation/scripts/import-claude.rb')
   ID = '33333333-3333-3333-3333-333333333333'
 

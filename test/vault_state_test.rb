@@ -7,7 +7,7 @@ require 'open3'
 require 'json'
 
 class VaultStateTest < Minitest::Test
-  ROOT = File.expand_path(ENV.fetch('SKILLS_ROOT', File.expand_path('..', __dir__)))
+  ROOT = File.expand_path(ENV.fetch('SKILLS_ROOT', File.expand_path('../skills', __dir__)))
 
   def setup
     @root = Dir.mktmpdir('synthetic-vault-')

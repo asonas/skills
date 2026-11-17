@@ -4,7 +4,7 @@
 set -eu
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-script="$root/herdr-lead/scripts/muse-task"
+script="$root/skills/herdr-lead/scripts/muse-task"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
@@ -46,7 +46,7 @@ printf '%s\n' "$out" | grep -q '^terminal: t9$' || fail "terminal not reported"
 
 launch="$(tr "\0" " " < "$tmp/hc.log")"
 for want in "run --bg" "--outlive-parent" "--name $name" "--cwd $tmp/repos/github.com/acme/widget" \
-    "--label muse-task=1" "claude --permission-mode auto" "$root/herdr-lead/SKILL.md" \
+    "--label muse-task=1" "claude --permission-mode auto" "$root/skills/herdr-lead/SKILL.md" \
     "Result file: $tmp/state/$name/result.md" "Fix the typo in README"; do
     [[ "$launch" == *"$want"* ]] || fail "launch lacks: $want"
 done

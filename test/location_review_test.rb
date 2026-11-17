@@ -3,7 +3,7 @@ require 'minitest/autorun'
 require 'open3'
 require 'rbconfig'
 require 'tmpdir'
-require_relative '../obsidian-vault/scripts/review-locations'
+require_relative '../skills/obsidian-vault/scripts/review-locations'
 
 class LocationReviewTest < Minitest::Test
   def setup
@@ -58,7 +58,7 @@ class LocationReviewTest < Minitest::Test
 
   def test_preview_cli_emits_reviewable_json_without_credentials
     write('notes/research.md', 'research')
-    script = File.expand_path('../obsidian-vault/scripts/review-locations.rb', __dir__)
+    script = File.expand_path('../skills/obsidian-vault/scripts/review-locations.rb', __dir__)
     output, error, status = Open3.capture3(
       { 'TYPESAFE_API_KEY' => nil }, RbConfig.ruby, script, 'preview',
       '--vault', @tmp, '--date', Date.today.iso8601

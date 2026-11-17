@@ -7,7 +7,7 @@ require 'open3'
 require 'tmpdir'
 
 class AttachmentPlacementTest < Minitest::Test
-  ROOT = File.expand_path(ENV.fetch('SKILLS_ROOT', File.expand_path('..', __dir__)))
+  ROOT = File.expand_path(ENV.fetch('SKILLS_ROOT', File.expand_path('../skills', __dir__)))
   SCRIPT = File.join(ROOT, 'obsidian-vault/scripts/place-attachment.rb')
 
   def setup

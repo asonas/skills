@@ -8,7 +8,7 @@ require "tmpdir"
 
 class AppleInterfaceGuidelinesScriptsTest < Minitest::Test
   ROOT = File.expand_path("..", __dir__)
-  SKILL = File.join(ROOT, "apply-apple-interface-guidelines")
+  SKILL = File.join(ROOT, "skills/apply-apple-interface-guidelines")
   FIXTURES = File.join(ROOT, "test/fixtures/apple-interface-guidelines")
   COMPARE = File.join(SKILL, "scripts/compare-manifests")
   VALIDATE = File.join(SKILL, "scripts/validate-hig-sources")

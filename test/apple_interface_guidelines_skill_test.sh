@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-skill=apply-apple-interface-guidelines
+skill=skills/apply-apple-interface-guidelines
 required_files='SKILL.md agents/openai.yaml references/design-principles.md references/web-guidelines.md references/react-typescript.md references/ios-guidelines.md references/swiftui.md references/review-checklist.md references/source-manifest.md scripts/compare-manifests scripts/validate-hig-sources'
 
 for file in $required_files; do

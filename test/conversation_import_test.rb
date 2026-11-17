@@ -8,7 +8,7 @@ require 'open3'
 require 'rbconfig'
 
 class ConversationImportTest < Minitest::Test
-  SKILLS_ROOT = ENV.fetch('SKILLS_ROOT', File.expand_path('..', __dir__))
+  SKILLS_ROOT = ENV.fetch('SKILLS_ROOT', File.expand_path('../skills', __dir__))
   SCRIPT = File.join(SKILLS_ROOT, 'save-conversation/scripts/import-codex.rb')
   ID = '11111111-1111-1111-1111-111111111111'
   OTHER = '22222222-2222-2222-2222-222222222222'
